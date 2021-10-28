@@ -302,12 +302,41 @@
 		background-color: lightpink;
 		text-decoration: line-through;
 	}
-	div.drag-target.incorrectTransitory {
-		background-color: red;
-		transition: 200ms;
-	}
 	div.drag-target.correctTransitory {
-		background-color: green;
-		transition: 200ms;
+		animation-duration: 2s;
+		animation-name: flashGreen;
+	}
+	div.drag-target.incorrectTransitory{
+		animation-duration: 2s;
+		animation-name: flashRed;
+	}
+
+	@keyframes flashRed{
+		from{
+			background-color: grey;
+			scale: 1;
+		}
+		10%{
+			background-color: red;
+			scale: 1.5;
+		}
+		to{
+			background-color: grey;
+			scale: 1;
+		}
+	}
+	@keyframes flashGreen{
+		from{
+			background-color: grey;
+			scale: 1;
+		}
+		10%{
+			background-color: green;
+			scale: 1.5;
+		}
+		to{
+			background-color: grey;
+			scale: 1;
+		}
 	}
 </style>
