@@ -11,7 +11,7 @@ import { onMount } from "svelte";
 		// GET DATA FROM GOOGLE SHEET
 		const SPREADSHEET_ID = '1w9veOiBf9shl9ZdgzUtDh17ixrwfntTweRCbPjAzwPg'
 		// const RANGE = 'w!A1:e'
-		const API_KEY = "AIzaSyAvDr2Y3SqcxcAZF9g-UA7_WQgitMMj4fY";
+		
 		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/"
 		let response = await fetch(`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`)
 		let data = await response.json()
