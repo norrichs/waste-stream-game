@@ -4,6 +4,11 @@ import resolve from '@rollup/plugin-node-resolve';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import css from 'rollup-plugin-css-only';
+import replace from '@rollup/plugin-replace'
+import {config} from 'dotenv'
+import sveltePreprocess from 'svelte-preprocess'
+
+config()
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -41,7 +46,13 @@ export default {
 			compilerOptions: {
 				// enable run-time checks when not in production
 				dev: !production
-			}
+			},
+			preprocess: sveltePreprocess({
+				replace: [
+					["process.env.SPREADSHEET_ID", process.env.SPREADSHEET_ID],
+					["process.env.API_KEY", process.env.API_KEY]	
+				]
+			})
 		}),
 		// we'll extract any component CSS out into
 		// a separate file - better for performance

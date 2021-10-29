@@ -3,15 +3,20 @@ import { onMount } from "svelte";
 
 	import { flip } from "svelte/animate";
 	import { quintOut } from "svelte/easing";
+	// import {dotenv} from 'dotenv'
+
+	// dotenv.config()
 
 	let wasteStreams = []
 	let wasteItems = []
-
+	// console.log( testKey )
+	// console.log(testEnv)
+	
 	const fetchData = async (range) => {
 		// GET DATA FROM GOOGLE SHEET
-		const SPREADSHEET_ID = '1w9veOiBf9shl9ZdgzUtDh17ixrwfntTweRCbPjAzwPg'
-		// const RANGE = 'w!A1:e'
-		
+
+		const SPREADSHEET_ID = "process.env.SPREADSHEET_ID"
+		const API_KEY = 'process.env.API_KEY'
 		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/"
 		let response = await fetch(`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`)
 		let data = await response.json()
@@ -49,11 +54,9 @@ import { onMount } from "svelte";
 		e.dataTransfer.setDragImage(dragImg, 50, 50);
 	};
 	const dragend = (e) => {
-		console.log("dragend()");
 		e.target.style.opacity = 1;
 	};
 	const dragenter = (e) => {
-		console.log("dragenter()", e);
 		// TODO insert an element?
 	};
 	const drop = (e, i) => {
@@ -61,10 +64,8 @@ import { onMount } from "svelte";
 		const itemIndex = wasteItems
 			.map((item) => item.name)
 			.indexOf(wasteItemName);
-		console.log("drop()", wasteItemName);
 		wasteStreams[i].incorrectTransitory = wasteItems[itemIndex].waste_type !== wasteStreams[i].waste_type
 		wasteStreams[i].correctTransitory = wasteItems[itemIndex].waste_type === wasteStreams[i].waste_type
-		console.log('set incorrectTransitory', wasteStreams[i].incorrectTransitory)
 		wasteStreams[i].items.push(wasteItems.splice(itemIndex, 1)[0]);
 		wasteStreams = wasteStreams;
 		wasteItems = wasteItems;
@@ -152,7 +153,6 @@ import { onMount } from "svelte";
 					}}
 					on:dragover|preventDefault
 					on:dragleave={(event) => {
-						console.log("dragleave()");
 						s.dropReady = false;
 					}}
 				>
