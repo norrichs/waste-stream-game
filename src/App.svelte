@@ -1,85 +1,52 @@
 <script>
+import { onMount } from "svelte";
+
 	import { flip } from "svelte/animate";
 	import { quintOut } from "svelte/easing";
 
-	let wasteStreams = [
-		{
-			name: "Recycle",
-			waste_type: "recyclable",
-			dropReady: false,
-			incorrectTransitory: false,
-			items: [],
-		},
-		{
-			name: "Compost",
-			waste_type: "compostable",
-			dropReady: false,
-			incorrectTransitory: false,
-			items: [],
-		},
-		{
-			name: "Reuse",
-			waste_type: "reusable",
-			dropReady: false,
-			incorrectTransitory: false,
-			items: [],
-		},
-		{
-			name: "Landfill",
-			waste_type: "landfill",
-			dropReady: false,
-			incorrectTransitory: false,
-			items: [],
-		},
-	];
-	let wasteItems = [
-		{
-			name: "Soda can",
-			waste_type: "recyclable",
-			image: "./images/soda_can.png",
-			incorrect: "Aluminum soda cans are very recyclable",
-			correct: "",
-		},
-		{
-			name: "Paper bag",
-			waste_type: "reusable",
-			image: "./images/paper_bag.png",
-			incorrect: "Go ahead and reuse a few times before recycling!",
-			correct: "might as well reuse...",
-		},
-		{
-			name: "Paper cup",
-			waste_type: "recyclable",
-			image: "./images/paper_cup.png",
-			incorrect: "recycle this plz!",
-			correct: "nicely recycled into new paper products!",
-		},
-		{
-			name: "Rotten apple",
-			waste_type: "compostable",
-			image: "./images/rotten_apple.png",
-			incorrect:
-				"Best to compost at home if you can.  Improves soil health!",
-			correct: "Yep, compost it!",
-		},
-		{
-			name: "Tire",
-			waste_type: "landfill",
-			image: "./images/tire.png",
-			incorrect: "Just dump it!",
-			correct: "Your local transfer station will know what to do",
-		},
-	];
+	let wasteStreams = []
+	let wasteItems = []
+
+	const fetchData = async (range) => {
+		// GET DATA FROM GOOGLE SHEET
+		const SPREADSHEET_ID = '1w9veOiBf9shl9ZdgzUtDh17ixrwfntTweRCbPjAzwPg'
+		// const RANGE = 'w!A1:e'
+		const API_KEY = "AIzaSyAvDr2Y3SqcxcAZF9g-UA7_WQgitMMj4fY";
+		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/"
+		let response = await fetch(`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`)
+		let data = await response.json()
+		return convertSheetToObject(data.values)
+	}
+
+	const convertSheetToObject = (arr) => {
+		const [headings, ...data] = arr
+		return data.map((item,i) => {
+			let obj = {}
+			item.forEach((value, i) => {
+				switch(value){
+					case '[]':
+						obj[headings[i]] = []
+						break;
+					case 'FALSE':
+						obj[headings[i]] = false
+						break;
+					case 'TRUE':
+						obj[headings[i]] = true
+						break;
+					default:
+						obj[headings[i]] = value
+						break;		
+				} 
+			})
+			return obj
+		})
+	}
 
 	const dragstart = (e, i) => {
-		console.log("dragstart()", i, e.target);
-		// let dragImg = e.srcElement
 		e.dataTransfer.setData("text/plain", wasteItems[i].name);
 		const dragImg = document.getElementById(e.target.id);
-		e.target.style.opacity = 0.1;
+		e.target.style.opacity = 0.25;
 		e.dataTransfer.setDragImage(dragImg, 50, 50);
-		// console.log('post set', e)
-		// e.currentTarget.style.opacity = "100%"
 	};
 	const dragend = (e) => {
 		console.log("dragend()");
@@ -103,7 +70,6 @@
 		wasteItems = wasteItems;
 	};
 	const calcScore = (w) => {
-		console.log("recalc");
 		return w.reduce((acc, stream) => {
 			if (stream.items.length === 0) return acc;
 			else
@@ -122,6 +88,19 @@
 	$: {
 		sortScore = calcScore(wasteStreams);
 	}
+
+	const getSheetsData = () => {
+		console.log('get data')
+		
+	}
+	onMount(async ()=>{
+		wasteItems = await fetchData('wasteItems!A1:E')
+		wasteStreams = await fetchData('wasteStreams!A1:E')
+		// console.log('fetchedWasteItems', wasteItems)
+		// console.log('fetched Waste Streams', wasteStreams)
+	})
+
+
 </script>
 
 <main>
@@ -166,12 +145,12 @@
 						drop(event, index);
 					}}
 					on:dragenter|preventDefault={(event) => {
+						s.incorrectTransitory = false;
+						s.correctTransitory = false;
+						s.dropReady = true;
 						dragenter(event);
 					}}
-					on:dragover|preventDefault={(event) => {
-						console.log("dragover()");
-						s.dropReady = true;
-					}}
+					on:dragover|preventDefault
 					on:dragleave={(event) => {
 						console.log("dragleave()");
 						s.dropReady = false;
@@ -183,7 +162,7 @@
 		</div>
 	</section>
 	<section class="score">
-		<div>Score: {sortScore}</div>
+		<h2>Score: {sortScore}</h2>
 		{#if wasteItems.length === 0}
 			<div>Report:</div>
 			{#each wasteStreams as s}
@@ -303,11 +282,11 @@
 		text-decoration: line-through;
 	}
 	div.drag-target.correctTransitory {
-		animation-duration: 2s;
+		animation-duration: 1.5s;
 		animation-name: flashGreen;
 	}
 	div.drag-target.incorrectTransitory{
-		animation-duration: 2s;
+		animation-duration: 1.5s;
 		animation-name: flashRed;
 	}
 
