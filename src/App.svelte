@@ -16,7 +16,7 @@ import { onMount } from "svelte";
 		// GET DATA FROM GOOGLE SHEET
 
 		const SPREADSHEET_ID = "process.env.SPREADSHEET_ID"
-		const API_KEY = 'process.env.API_KEY'
+		const API_KEY = "process.env.API_KEY"
 		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/"
 		let response = await fetch(`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`)
 		let data = await response.json()
@@ -24,6 +24,8 @@ import { onMount } from "svelte";
 		return convertSheetToObject(data.values)
 	}
 
+	// Constructs a structured JS object based on data found in sheet
+	//	Not-generalizable.  Has special behavior to interpret arrays and booleans 
 	const convertSheetToObject = (arr) => {
 		const [headings, ...data] = arr
 		return data.map((item,i) => {
@@ -59,6 +61,10 @@ import { onMount } from "svelte";
 		})
 	}
 
+
+	//  Drag event handler functions
+	// 	Not for touch-based inputs
+
 	const dragstart = (e, i) => {
 		e.dataTransfer.setData("text/plain", wasteItems[i].name);
 		const dragImg = document.getElementById(e.target.id);
@@ -82,6 +88,10 @@ import { onMount } from "svelte";
 		wasteStreams = wasteStreams;
 		wasteItems = wasteItems;
 	};
+
+
+	// Score calcuating function.  Adds 1 to score if waste type of
+	// 	stream chosen is included in waste types of item dragged (sometimes multiple correct possible)
 	const calcScore = (w) => {
 		return w.reduce((acc, stream) => {
 			if (stream.items.length === 0) return acc;
@@ -138,7 +148,8 @@ import { onMount } from "svelte";
 		return selected
 	}
 
-
+	// Reactive score variable declaration.  Will recalculate whenever wasteStreams changes, 
+	//		triggering re-render
 	let sortScore;
 	$: {
 		sortScore = calcScore(wasteStreams);
@@ -148,21 +159,25 @@ import { onMount } from "svelte";
 		console.log('get data')
 		
 	}
+
+	// Initial data setup
+	// 	Fetches all data from Google Sheet.
+	//	Selects random items to play sorting game
+
+	// TODO - 
+	//	Fetch settings (# of items to be selected?  anything else?)
 	onMount(async ()=>{
 		const allWasteItems = await fetchData('wasteItemsOutput')
 		wasteItems = selectItems(allWasteItems, wasteItemsCount)
 		wasteStreams = await fetchData('wasteStreamsOutput')
-		console.log('fetchedWasteItems', wasteItems)
-		console.log('fetched Waste Streams', wasteStreams)
+		console.log('fetched and selected wasteItems', wasteItems)
+		console.log('fetched wasteStreams', wasteStreams)
 	})
 
 
 </script>
 
 <main>
-	<section class="experimental">
-		<button on:click={async ()=>{console.log(await fetchData('experimental!A1:c4'))}}>get data</button>
-	</section>
 	<section class="drag-area">
 		<div class="drag-sources">
 			{#each wasteItems as w, index (w.name)}
@@ -249,7 +264,7 @@ import { onMount } from "svelte";
 
 <style>
 	:root {
-		--drag-box-height: 175px;
+		--drag-box-height: 125px;
 	}
 	section.drag-area {
 		margin: 0 auto;
