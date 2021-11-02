@@ -6,7 +6,7 @@ import { onMount } from "svelte";
 	// import {dotenv} from 'dotenv'
 
 	// dotenv.config()
-
+	const wasteItemsCount = 8;
 	let wasteStreams = []
 	let wasteItems = []
 	// console.log( testKey )
@@ -20,6 +20,7 @@ import { onMount } from "svelte";
 		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/"
 		let response = await fetch(`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`)
 		let data = await response.json()
+		// console.log('data',data)
 		return convertSheetToObject(data.values)
 	}
 
@@ -28,7 +29,11 @@ import { onMount } from "svelte";
 		return data.map((item,i) => {
 			let obj = {}
 			item.forEach((value, i) => {
+				
 				switch(value){
+					case '':
+						obj[headings[i]] = ''
+						break;
 					case '[]':
 						obj[headings[i]] = []
 						break;
@@ -39,7 +44,14 @@ import { onMount } from "svelte";
 						obj[headings[i]] = true
 						break;
 					default:
-						obj[headings[i]] = value
+						if(value[0] === "[" && value[value.length-1] === "]"){
+							let valuesArray = value.substr(1,value.length-2).split(",").map(str=>str.trim())
+							// console.log('array',valuesArray)
+							obj[headings[i]] = valuesArray
+						}else{
+							obj[headings[i]] = value
+						}
+
 						break;		
 				} 
 			})
@@ -64,8 +76,8 @@ import { onMount } from "svelte";
 		const itemIndex = wasteItems
 			.map((item) => item.name)
 			.indexOf(wasteItemName);
-		wasteStreams[i].incorrectTransitory = wasteItems[itemIndex].waste_type !== wasteStreams[i].waste_type
-		wasteStreams[i].correctTransitory = wasteItems[itemIndex].waste_type === wasteStreams[i].waste_type
+		wasteStreams[i].incorrectTransitory = wasteItems[itemIndex].waste_type.includes(wasteStreams[i].waste_type) ? false : true
+		wasteStreams[i].correctTransitory = wasteItems[itemIndex].waste_type.includes(wasteStreams[i].waste_type) ? true : false
 		wasteStreams[i].items.push(wasteItems.splice(itemIndex, 1)[0]);
 		wasteStreams = wasteStreams;
 		wasteItems = wasteItems;
@@ -77,13 +89,55 @@ import { onMount } from "svelte";
 				return (
 					acc +
 					stream.items.reduce((acc, item) => {
-						return item.waste_type === stream.waste_type
+						return item.waste_type.includes(stream.waste_type)
 							? acc + 1
 							: acc;
 					}, 0)
 				);
 		}, 0);
 	};
+
+
+	// From the set of all wasteItems, select items equal to 'size'
+	// Algo - 
+	//		Loop through unique types
+	//			Filter items by a type, then choose a random item from filtered list.
+	//			Use picked item to get an index for that item.  Splice it and add to 'selected' array
+
+
+
+
+	const selectItems = (arr, size) => {
+		console.log('arr', arr, 'size', size)
+		let selected = []
+		let uniqueTypes = []
+		// Construct list of unique waste_types
+		arr.forEach(item=>{
+			item.waste_type.forEach(type=>{
+				if(!uniqueTypes.includes(type)) uniqueTypes.push(type) 
+			})
+		})
+
+		// Loop through unique types, filter arr by type, 
+		//		choose a random item, get index of item
+		//		splice from arr into selected
+		uniqueTypes.forEach(type => {
+			const itemsFilteredByType = arr.filter(item => {
+				return item.waste_type.includes(type)
+			})
+			const randItemOfType = itemsFilteredByType[Math.floor(Math.random() * itemsFilteredByType.length)]
+			const indexOfRandItemOfType = arr.map(item=>item.name).indexOf(randItemOfType.name)
+			selected.push(arr.splice(indexOfRandItemOfType,1)[0])
+
+		})
+		let remaining = size - selected.length
+		while(remaining > 0){
+			selected.push(arr.splice(Math.random() * arr.length)[0])
+			remaining -= 1
+		}
+		return selected
+	}
+
 
 	let sortScore;
 	$: {
@@ -95,16 +149,20 @@ import { onMount } from "svelte";
 		
 	}
 	onMount(async ()=>{
-		wasteItems = await fetchData('wasteItems!A1:E')
-		wasteStreams = await fetchData('wasteStreams!A1:E')
-		// console.log('fetchedWasteItems', wasteItems)
-		// console.log('fetched Waste Streams', wasteStreams)
+		const allWasteItems = await fetchData('wasteItemsOutput')
+		wasteItems = selectItems(allWasteItems, wasteItemsCount)
+		wasteStreams = await fetchData('wasteStreamsOutput')
+		console.log('fetchedWasteItems', wasteItems)
+		console.log('fetched Waste Streams', wasteStreams)
 	})
 
 
 </script>
 
 <main>
+	<section class="experimental">
+		<button on:click={async ()=>{console.log(await fetchData('experimental!A1:c4'))}}>get data</button>
+	</section>
 	<section class="drag-area">
 		<div class="drag-sources">
 			{#each wasteItems as w, index (w.name)}
@@ -130,6 +188,7 @@ import { onMount } from "svelte";
 								dragend(event);
 							}}
 						/>
+						{w.waste_type}
 					</div>
 				</div>
 			{/each}
@@ -170,13 +229,13 @@ import { onMount } from "svelte";
 				<ul>
 					{#each s.items as item}
 						<li
-							class={item.waste_type === s.waste_type
+							class={item.waste_type.includes(s.waste_type)
 								? "correct"
 								: "incorrect"}
 						>
 							<span>{item.name}</span>
 							<span
-								>{item.waste_type === s.waste_type
+								>{item.waste_type.includes(s.waste_type)
 									? item.correct
 									: item.incorrect}</span
 							>
@@ -198,7 +257,7 @@ import { onMount } from "svelte";
 		/* height: 60vh; */
 		/* background-color: beige; */
 		display: grid;
-		grid-template-rows: 1fr 200px;
+		grid-template-rows: 2fr 1fr 200px;
 	}
 	.drag-sources {
 		display: flex;
