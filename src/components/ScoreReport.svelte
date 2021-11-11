@@ -49,11 +49,11 @@
 								? "correct"
 								: "incorrect"}
 						>
-							<span>{item.name}</span>
-							<span
+							<h4>{item.name}</h4>
+							<p
 								>{item.waste_type.includes(s.waste_type)
 									? item.correct
-									: item.incorrect}</span
+									: item.incorrect}</p
 							>
 						</li>
 					{/each}
@@ -91,19 +91,24 @@
 		background-color: rgba(0,0,0,.7);
 		display: grid;
 		place-items: center;
+		padding: 20px;
+
 	}
 	.score-report{
-		padding: 30px;
+		padding: 20px;
 		background-color: aliceblue;
-		margin: 0 auto;
+		/* margin: 30px auto; */
 		max-width: 800px;
 		display: flex;
 		flex-direction: column;
 		border-radius: 20px;
+		height: 90vh;
 	}
 	.report-grid{
 		display: grid;
 		grid-template-columns: 1fr 5fr;
+		overflow-y: scroll;
+		overflow-x: hidden;
 
 	}
 	.correct,
@@ -113,8 +118,16 @@
 		border: 1px solid;
 		margin: 3px;
 		display: flex;
-		flex-direction: row;
+		flex-direction: column;
 		justify-content: space-between;
+	}
+	.correct>p,
+	.incorrect>p {
+		font-weight: 200;
+	}
+	.correct>h4,
+	.incorrect>h4 {
+		font-weight: 700;
 	}
 	.correct {
 		color: green;
@@ -123,6 +136,5 @@
 	.incorrect {
 		color: red;
 		background-color: lightpink;
-		text-decoration: line-through;
 	}
 </style>
