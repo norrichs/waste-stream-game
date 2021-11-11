@@ -4,17 +4,21 @@
 
 	import { flip } from "svelte/animate";
 	import { quintOut } from "svelte/easing";
-	import { xlink_attr } from "svelte/internal";
-	// import {dotenv} from 'dotenv'
 
-	// dotenv.config()
-	const wasteItemsCount = 8;
+	let wasteItemsCount = 8;
+	let adminMode = false;
 	let wasteStreams = [];
 	let wasteItems = [];
+	let settings = []
 	let lastElementOver;
 	let hiddenScoreReport = true;
 	$: {
-		hiddenScoreReport = wasteItems.length > 0
+		if(wasteItems.length === 0){
+			document
+				.querySelector("body.scroll-controlled")
+				.classList.add("stop-scrolling")
+			hiddenScoreReport = false
+		}else hiddenScoreReport = true
 	}
 
 	const fetchData = async (range) => {
@@ -72,6 +76,13 @@
 			return obj;
 		});
 	};
+	
+	const handleSettings = (settings) => {
+		console.log(settings)
+		wasteItemsCount = parseInt(settings.wasteItemsCount)
+		adminMode = settings.adminMode
+	}
+
 
 	//  Drag event handler functions
 	// 	Not for touch-based inputs
@@ -207,6 +218,10 @@
 			selected.push(arr.splice(Math.random() * arr.length)[0]);
 			remaining -= 1;
 		}
+		selected = selected.map(item => {
+			if(item.image === '') item.image = '../images/no_image_transparent.png'
+			return item
+		})
 		return selected;
 	};
 
@@ -221,15 +236,18 @@
 	// TODO -
 	//	Fetch settings (# of items to be selected?  anything else?)
 	onMount(async () => {
-		const allWasteItems = await fetchData("wasteItemsOutput");
+		settings = await fetchData("settings!A1:2")
+		const allWasteItems = await fetchData("wasteItemsOutput!A1:18");
+		handleSettings(settings[0])
+		console.log(wasteItemsCount, 'all waste items', allWasteItems)
 		wasteItems = selectItems(allWasteItems, wasteItemsCount);
-		wasteStreams = await fetchData("wasteStreamsOutput");
 		console.log("fetched and selected wasteItems", wasteItems);
+		wasteStreams = await fetchData("wasteStreamsOutput");
 		console.log("fetched wasteStreams", wasteStreams);
 	});
 </script>
 
-<main class="drag-area">
+<main>
 	<header>
 		<h2>Waste-sort</h2>
 	</header>
@@ -268,7 +286,11 @@
 						on:touchmove={(ev) => touchMove(ev)}
 					/>
 
-					{w.waste_type}
+					{#if adminMode}
+						<p class="admin-message">
+							{w.waste_type}
+						</p>
+					{/if}
 				</div>
 			</div>
 		{/each}
@@ -315,6 +337,11 @@
 		display: grid;
 		grid-template-rows: 50px 4fr 1fr;
 		grid-template-columns: 1fr 200px;
+		background-image: url('../images/pond_chapel.png');
+		background-position-x: center;
+		/* filter: grayscale(100%) */
+		object-fit: cover;
+		box-sizing: border-box;
 	}
 
 	.drag-sources {
@@ -349,19 +376,23 @@
 		padding: 5px;
 	}
 	.drag-targets {
+		padding: 30px;
+		margin: 0 auto;
 		grid-row: 3 / 4;
 		grid-column: 1 / 3;
-		width: 100%;
+		/* width: 100%; */
+		max-width: 90vw;
 		display: flex;
 		flex-direction: row;
 		justify-content: center;
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 30px;
+		background-color: rgba(0,0,0,0.75);
 	}
 	.drag-target {
 		font-size: 1.5em;
-		/* width: var(--drag-box-height); */
+		min-width: var(--drag-box-height);
 		height: var(--drag-box-height);
 		background-color: grey;
 		border: 2px solid black;
