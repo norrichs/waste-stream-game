@@ -5,6 +5,7 @@ html, body {
 }
 
 body {
+	/* position: relative; */
 	color: #333;
 	margin: 0;
 	padding: 8px;
@@ -60,4 +61,8 @@ button:not(:disabled):active {
 
 button:focus {
 	border-color: #666;
+}
+.stop-scrolling {
+	height: 100%;
+	overflow: hidden;
 }
