@@ -1,66 +1,77 @@
 <script>
-import { onMount } from "svelte";
+	import { onMount } from "svelte";
+	import ScoreReport from "./components/ScoreReport.svelte";
 
 	import { flip } from "svelte/animate";
 	import { quintOut } from "svelte/easing";
+	import { xlink_attr } from "svelte/internal";
 	// import {dotenv} from 'dotenv'
 
 	// dotenv.config()
 	const wasteItemsCount = 8;
-	let wasteStreams = []
-	let wasteItems = []
-	// console.log( testKey )
-	// console.log(testEnv)
-	
+	let wasteStreams = [];
+	let wasteItems = [];
+	let lastElementOver;
+	let hiddenScoreReport = true;
+	$: {
+		hiddenScoreReport = wasteItems.length > 0
+	}
+
 	const fetchData = async (range) => {
 		// GET DATA FROM GOOGLE SHEET
 
-		const SPREADSHEET_ID = "process.env.SPREADSHEET_ID"
-		const API_KEY = "process.env.API_KEY"
-		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/"
-		let response = await fetch(`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`)
-		let data = await response.json()
+		const SPREADSHEET_ID = "process.env.SPREADSHEET_ID";
+		const API_KEY = "process.env.API_KEY";
+		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/";
+		let response = await fetch(
+			`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`
+		);
+		let data = await response.json();
 		// console.log('data',data)
-		return convertSheetToObject(data.values)
-	}
+		return convertSheetToObject(data.values);
+	};
 
 	// Constructs a structured JS object based on data found in sheet
-	//	Not-generalizable.  Has special behavior to interpret arrays and booleans 
+	//	Not-generalizable.  Has special behavior to interpret arrays and booleans
 	const convertSheetToObject = (arr) => {
-		const [headings, ...data] = arr
-		return data.map((item,i) => {
-			let obj = {}
+		const [headings, ...data] = arr;
+		return data.map((item, i) => {
+			let obj = {};
 			item.forEach((value, i) => {
-				
-				switch(value){
-					case '':
-						obj[headings[i]] = ''
+				switch (value) {
+					case "":
+						obj[headings[i]] = "";
 						break;
-					case '[]':
-						obj[headings[i]] = []
+					case "[]":
+						obj[headings[i]] = [];
 						break;
-					case 'FALSE':
-						obj[headings[i]] = false
+					case "FALSE":
+						obj[headings[i]] = false;
 						break;
-					case 'TRUE':
-						obj[headings[i]] = true
+					case "TRUE":
+						obj[headings[i]] = true;
 						break;
 					default:
-						if(value[0] === "[" && value[value.length-1] === "]"){
-							let valuesArray = value.substr(1,value.length-2).split(",").map(str=>str.trim())
+						if (
+							value[0] === "[" &&
+							value[value.length - 1] === "]"
+						) {
+							let valuesArray = value
+								.substr(1, value.length - 2)
+								.split(",")
+								.map((str) => str.trim());
 							// console.log('array',valuesArray)
-							obj[headings[i]] = valuesArray
-						}else{
-							obj[headings[i]] = value
+							obj[headings[i]] = valuesArray;
+						} else {
+							obj[headings[i]] = value;
 						}
 
-						break;		
-				} 
-			})
-			return obj
-		})
-	}
-
+						break;
+				}
+			});
+			return obj;
+		});
+	};
 
 	//  Drag event handler functions
 	// 	Not for touch-based inputs
@@ -82,206 +93,240 @@ import { onMount } from "svelte";
 		const itemIndex = wasteItems
 			.map((item) => item.name)
 			.indexOf(wasteItemName);
-		wasteStreams[i].incorrectTransitory = wasteItems[itemIndex].waste_type.includes(wasteStreams[i].waste_type) ? false : true
-		wasteStreams[i].correctTransitory = wasteItems[itemIndex].waste_type.includes(wasteStreams[i].waste_type) ? true : false
+		wasteStreams[i].incorrectTransitory = wasteItems[
+			itemIndex
+		].waste_type.includes(wasteStreams[i].waste_type)
+			? false
+			: true;
+		wasteStreams[i].correctTransitory = wasteItems[
+			itemIndex
+		].waste_type.includes(wasteStreams[i].waste_type)
+			? true
+			: false;
 		wasteStreams[i].items.push(wasteItems.splice(itemIndex, 1)[0]);
 		wasteStreams = wasteStreams;
 		wasteItems = wasteItems;
 	};
-
-
-	// Score calcuating function.  Adds 1 to score if waste type of
-	// 	stream chosen is included in waste types of item dragged (sometimes multiple correct possible)
-	const calcScore = (w) => {
-		return w.reduce((acc, stream) => {
-			if (stream.items.length === 0) return acc;
-			else
-				return (
-					acc +
-					stream.items.reduce((acc, item) => {
-						return item.waste_type.includes(stream.waste_type)
-							? acc + 1
-							: acc;
-					}, 0)
-				);
-		}, 0);
+	const touchStart = (ev) => {
+		// remove all 'transitory effects'
+		wasteStreams.map((s) => {
+			s.incorrectTransitory = false;
+			s.correctTransitory = false;
+			return s;
+		});
+		toggleScroll();
 	};
 
+	const touchMove = (ev) => {
+		const elementOver = document.elementFromPoint(
+			ev.changedTouches[0].clientX,
+			ev.changedTouches[0].clientY
+		);
+		if (elementOver?.classList.contains("drag-target")) {
+			// console.log("touchmove over", elementOver)
+			elementOver.classList.add("dropReady");
+			lastElementOver = elementOver;
+		} else {
+			lastElementOver?.classList.remove("dropReady");
+		}
+	};
+
+	const touchDrop = (ev) => {
+		toggleScroll();
+		const x = ev.changedTouches[0].clientX;
+		const y = ev.changedTouches[0].clientY;
+		// const item = wasteItems[ wasteItems.map(item => item.name).indexOf(ev.target.id) ]
+		const dropTargetElement = document.elementFromPoint(x, y);
+		console.log("untested drop target", dropTargetElement);
+		if (dropTargetElement?.classList.contains("drag-target")) {
+			console.log("valid drop target", dropTargetElement);
+			const i = wasteStreams
+				.map((stream) => stream.name)
+				.indexOf(dropTargetElement.id);
+			// const stream = wasteStreams[i];
+			const itemIndex = wasteItems
+				.map((item) => item.name)
+				.indexOf(ev.target.id);
+			wasteStreams[i].incorrectTransitory = wasteItems[
+				itemIndex
+			].waste_type.includes(wasteStreams[i].waste_type)
+				? false
+				: true;
+			wasteStreams[i].correctTransitory = wasteItems[
+				itemIndex
+			].waste_type.includes(wasteStreams[i].waste_type)
+				? true
+				: false;
+			wasteStreams[i].items.push(wasteItems.splice(itemIndex, 1)[0]);
+			wasteItems = wasteItems;
+			wasteStreams = wasteStreams;
+			console.log("wasteItems", wasteItems, "wasteStreams", wasteStreams);
+		}
+	};
+	const toggleScroll = () => {
+		document
+			.querySelector("body.scroll-controlled")
+			.classList.toggle("stop-scrolling");
+	};
 
 	// From the set of all wasteItems, select items equal to 'size'
-	// Algo - 
+	// Algo -
 	//		Loop through unique types
 	//			Filter items by a type, then choose a random item from filtered list.
 	//			Use picked item to get an index for that item.  Splice it and add to 'selected' array
 
-
-
-
 	const selectItems = (arr, size) => {
-		console.log('arr', arr, 'size', size)
-		let selected = []
-		let uniqueTypes = []
+		console.log("arr", arr, "size", size);
+		let selected = [];
+		let uniqueTypes = [];
 		// Construct list of unique waste_types
-		arr.forEach(item=>{
-			item.waste_type.forEach(type=>{
-				if(!uniqueTypes.includes(type)) uniqueTypes.push(type) 
-			})
-		})
+		arr.forEach((item) => {
+			item.waste_type.forEach((type) => {
+				if (!uniqueTypes.includes(type)) uniqueTypes.push(type);
+			});
+		});
 
-		// Loop through unique types, filter arr by type, 
+		// Loop through unique types, filter arr by type,
 		//		choose a random item, get index of item
 		//		splice from arr into selected
-		uniqueTypes.forEach(type => {
-			const itemsFilteredByType = arr.filter(item => {
-				return item.waste_type.includes(type)
-			})
-			const randItemOfType = itemsFilteredByType[Math.floor(Math.random() * itemsFilteredByType.length)]
-			const indexOfRandItemOfType = arr.map(item=>item.name).indexOf(randItemOfType.name)
-			selected.push(arr.splice(indexOfRandItemOfType,1)[0])
-
-		})
-		let remaining = size - selected.length
-		while(remaining > 0){
-			selected.push(arr.splice(Math.random() * arr.length)[0])
-			remaining -= 1
+		uniqueTypes.forEach((type) => {
+			const itemsFilteredByType = arr.filter((item) => {
+				return item.waste_type.includes(type);
+			});
+			const randItemOfType =
+				itemsFilteredByType[
+					Math.floor(Math.random() * itemsFilteredByType.length)
+				];
+			const indexOfRandItemOfType = arr
+				.map((item) => item.name)
+				.indexOf(randItemOfType.name);
+			selected.push(arr.splice(indexOfRandItemOfType, 1)[0]);
+		});
+		let remaining = size - selected.length;
+		while (remaining > 0) {
+			selected.push(arr.splice(Math.random() * arr.length)[0]);
+			remaining -= 1;
 		}
-		return selected
-	}
-
-	// Reactive score variable declaration.  Will recalculate whenever wasteStreams changes, 
-	//		triggering re-render
-	let sortScore;
-	$: {
-		sortScore = calcScore(wasteStreams);
-	}
+		return selected;
+	};
 
 	const getSheetsData = () => {
-		console.log('get data')
-		
-	}
+		console.log("get data");
+	};
 
 	// Initial data setup
 	// 	Fetches all data from Google Sheet.
 	//	Selects random items to play sorting game
 
-	// TODO - 
+	// TODO -
 	//	Fetch settings (# of items to be selected?  anything else?)
-	onMount(async ()=>{
-		const allWasteItems = await fetchData('wasteItemsOutput')
-		wasteItems = selectItems(allWasteItems, wasteItemsCount)
-		wasteStreams = await fetchData('wasteStreamsOutput')
-		console.log('fetched and selected wasteItems', wasteItems)
-		console.log('fetched wasteStreams', wasteStreams)
-	})
-
-
+	onMount(async () => {
+		const allWasteItems = await fetchData("wasteItemsOutput");
+		wasteItems = selectItems(allWasteItems, wasteItemsCount);
+		wasteStreams = await fetchData("wasteStreamsOutput");
+		console.log("fetched and selected wasteItems", wasteItems);
+		console.log("fetched wasteStreams", wasteStreams);
+	});
 </script>
 
-<main>
-	<section class="drag-area">
-		<div class="drag-sources">
-			{#each wasteItems as w, index (w.name)}
-				<div
-					animate:flip={{
-						delay: 250,
-						duration: 400,
-						easing: quintOut,
-					}}
-					class="drag-box"
-				>
-					<header class="drag-box-header">{w.name}</header>
-					<div>
-						<img
-							id={w.name}
-							src={w.image}
-							alt={w.name}
-							draggable="true"
-							on:dragstart={(event) => {
-								dragstart(event, index);
-							}}
-							on:dragend={(event) => {
-								dragend(event);
-							}}
-						/>
-						{w.waste_type}
-					</div>
+<main class="drag-area">
+	<header>
+		<h2>Waste-sort</h2>
+	</header>
+	<ScoreReport {wasteItems} {wasteStreams} {hiddenScoreReport}/>
+	<section class="drag-sources">
+		{#each wasteItems as w, index (w.name)}
+			<div
+				animate:flip={{
+					delay: 250,
+					duration: 400,
+					easing: quintOut,
+				}}
+				class="drag-box"
+			>
+				<header class="drag-box-header">{w.name}</header>
+				<div>
+					<img
+						id={w.name}
+						src={w.image}
+						alt={w.name}
+						draggable="true"
+						on:dragstart={(event) => {
+							dragstart(event, index);
+						}}
+						on:dragend={(event) => {
+							dragend(event);
+						}}
+						on:touchstart|passive={(ev) => touchStart()}
+						on:touchend={(ev) => touchDrop(ev)}
+						on:touchcancel={(ev) => {
+							console.log("touch cancelled");
+							document
+								.querySelector("body.scroll-controlled")
+								.classList.remove("stop-scrolling");
+						}}
+						on:touchmove={(ev) => touchMove(ev)}
+					/>
+
+					{w.waste_type}
 				</div>
-			{/each}
-		</div>
-		<div class="drag-targets">
-			{#each wasteStreams as s, index (s.name)}
-				<div
-					class="drag-target"
-					class:dropReady={s.dropReady}
-					class:incorrectTransitory={s.incorrectTransitory}
-					class:correctTransitory={s.correctTransitory}
-					on:drop={(event) => {
-						s.dropReady = false;
-						drop(event, index);
-					}}
-					on:dragenter|preventDefault={(event) => {
-						s.incorrectTransitory = false;
-						s.correctTransitory = false;
-						s.dropReady = true;
-						dragenter(event);
-					}}
-					on:dragover|preventDefault
-					on:dragleave={(event) => {
-						s.dropReady = false;
-					}}
-				>
-					{s.name}
-				</div>
-			{/each}
-		</div>
+			</div>
+		{/each}
 	</section>
-	<section class="score">
-		<h2>Score: {sortScore}</h2>
-		{#if wasteItems.length === 0}
-			<div>Report:</div>
-			{#each wasteStreams as s}
-				<h4>{s.name}</h4>
-				<ul>
-					{#each s.items as item}
-						<li
-							class={item.waste_type.includes(s.waste_type)
-								? "correct"
-								: "incorrect"}
-						>
-							<span>{item.name}</span>
-							<span
-								>{item.waste_type.includes(s.waste_type)
-									? item.correct
-									: item.incorrect}</span
-							>
-						</li>
-					{/each}
-				</ul>
-			{/each}
-		{/if}
+	<section class="drag-targets">
+		{#each wasteStreams as s, index (s.name)}
+			<div
+				id={s.name}
+				class="drag-target"
+				class:dropReady={s.dropReady}
+				class:incorrectTransitory={s.incorrectTransitory}
+				class:correctTransitory={s.correctTransitory}
+				on:drop={(event) => {
+					s.dropReady = false;
+					drop(event, index);
+				}}
+				on:dragenter|preventDefault={(event) => {
+					s.incorrectTransitory = false;
+					s.correctTransitory = false;
+					s.dropReady = true;
+					dragenter(event);
+				}}
+				on:dragover|preventDefault
+				on:dragleave={(event) => {
+					s.dropReady = false;
+				}}
+			>
+			{s.name}
+		</div>
+		{/each}
 	</section>
+	
 </main>
 
 <style>
 	:root {
 		--drag-box-height: 125px;
 	}
-	section.drag-area {
+	main {
 		margin: 0 auto;
-		width: 90vw;
-		/* height: 60vh; */
-		/* background-color: beige; */
+		height: 100%;
+		width: 100%;
+		
 		display: grid;
-		grid-template-rows: 2fr 1fr 200px;
+		grid-template-rows: 50px 4fr 1fr;
+		grid-template-columns: 1fr 200px;
 	}
+
 	.drag-sources {
+		grid-row: 2 / 3;
+		grid-column: 1 / 3;
 		display: flex;
 		flex-direction: row;
 		justify-content: center;
 		align-items: flex-start;
 		flex-wrap: wrap;
+		padding: 30px;
 		gap: 30px;
-		margin-bottom: 100px;
 	}
 	.drag-box {
 		width: var(--drag-box-height);
@@ -304,6 +349,8 @@ import { onMount } from "svelte";
 		padding: 5px;
 	}
 	.drag-targets {
+		grid-row: 3 / 4;
+		grid-column: 1 / 3;
 		width: 100%;
 		display: flex;
 		flex-direction: row;
@@ -314,7 +361,7 @@ import { onMount } from "svelte";
 	}
 	.drag-target {
 		font-size: 1.5em;
-		width: var(--drag-box-height);
+		/* width: var(--drag-box-height); */
 		height: var(--drag-box-height);
 		background-color: grey;
 		border: 2px solid black;
@@ -328,66 +375,40 @@ import { onMount } from "svelte";
 		box-shadow: 0 0 50px 10px;
 		transition: 400ms;
 	}
-	.score {
-		padding: 30px;
-		background-color: aliceblue;
-		margin: 0 auto;
-		max-width: 500px;
-		display: flex;
-		flex-direction: column;
-	}
-	.correct,
-	.incorrect {
-		padding: 5px;
-		border-radius: 5px;
-		border: 1px solid;
-		margin: 3px;
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-	}
-	.correct {
-		color: green;
-		background-color: lightgreen;
-	}
-	.incorrect {
-		color: red;
-		background-color: lightpink;
-		text-decoration: line-through;
-	}
+
 	div.drag-target.correctTransitory {
 		animation-duration: 1.5s;
 		animation-name: flashGreen;
 	}
-	div.drag-target.incorrectTransitory{
+	div.drag-target.incorrectTransitory {
 		animation-duration: 1.5s;
 		animation-name: flashRed;
 	}
 
-	@keyframes flashRed{
-		from{
+	@keyframes flashRed {
+		from {
 			background-color: grey;
 			scale: 1;
 		}
-		10%{
+		10% {
 			background-color: red;
 			scale: 1.5;
 		}
-		to{
+		to {
 			background-color: grey;
 			scale: 1;
 		}
 	}
-	@keyframes flashGreen{
-		from{
+	@keyframes flashGreen {
+		from {
 			background-color: grey;
 			scale: 1;
 		}
-		10%{
+		10% {
 			background-color: green;
 			scale: 1.5;
 		}
-		to{
+		to {
 			background-color: grey;
 			scale: 1;
 		}
