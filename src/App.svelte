@@ -9,16 +9,16 @@
 	let adminMode = false;
 	let wasteStreams = [];
 	let wasteItems = [];
-	let settings = []
+	let settings = [];
 	let lastElementOver;
 	let hiddenScoreReport = true;
 	$: {
-		if(wasteItems.length === 0){
+		if (wasteItems.length === 0) {
 			document
 				.querySelector("body.scroll-controlled")
-				.classList.add("stop-scrolling")
-			hiddenScoreReport = false
-		}else hiddenScoreReport = true
+				.classList.add("stop-scrolling");
+			hiddenScoreReport = false;
+		} else hiddenScoreReport = true;
 	}
 
 	const fetchData = async (range) => {
@@ -64,7 +64,6 @@
 								.substr(1, value.length - 2)
 								.split(",")
 								.map((str) => str.trim());
-							// console.log('array',valuesArray)
 							obj[headings[i]] = valuesArray;
 						} else {
 							obj[headings[i]] = value;
@@ -76,13 +75,12 @@
 			return obj;
 		});
 	};
-	
-	const handleSettings = (settings) => {
-		console.log(settings)
-		wasteItemsCount = parseInt(settings.wasteItemsCount)
-		adminMode = settings.adminMode
-	}
 
+	const handleSettings = (settings) => {
+		console.log(settings);
+		wasteItemsCount = parseInt(settings.wasteItemsCount);
+		adminMode = settings.adminMode;
+	};
 
 	//  Drag event handler functions
 	// 	Not for touch-based inputs
@@ -119,20 +117,47 @@
 		wasteItems = wasteItems;
 	};
 	const touchStart = (ev) => {
+		// append a touchmove element
+		ev.target.style.opacity = "0.3";
+		const [x, y] = [
+			ev.changedTouches[0].clientX - 25,
+			ev.changedTouches[0].clientY - 25,
+		];
+		console.log("touchstart", ev, x, y);
+		const parentElement = document.querySelector("main");
+		const dragImg = document.createElement("img");
+		dragImg.setAttribute("src", ev.target.src);
+		dragImg.setAttribute("id", "drag-image-id");
+		dragImg.style.width = "50px";
+		dragImg.style.position = "absolute";
+		dragImg.style.top = y + "px";
+		dragImg.style.left = x + "px	";
+		dragImg.classList.add("drag-image");
+		parentElement.appendChild(dragImg);
+		console.log(document.querySelector("#drag-image-id").style.top);
+
 		// remove all 'transitory effects'
-		wasteStreams.map((s) => {
+		wasteStreams = wasteStreams.map((s) => {
 			s.incorrectTransitory = false;
 			s.correctTransitory = false;
 			return s;
 		});
-		toggleScroll();
 	};
 
 	const touchMove = (ev) => {
-		const elementOver = document.elementFromPoint(
-			ev.changedTouches[0].clientX,
-			ev.changedTouches[0].clientY
-		);
+		const dragImg = document.querySelector("#drag-image-id");
+		console.log('touchmove width height', dragImg.style.width, dragImg.style.height)
+		// get current cursor location
+		let [x, y] = [
+			ev.changedTouches[0].clientX - 25 ,//- dragImg.style.width / 2,
+			ev.changedTouches[0].clientY - 25// - dragImg.style.height / 2
+		];
+		// handle moving drag image
+		dragImg.style.top = y + "px";
+		dragImg.style.left = x + "px";
+
+		// handle hover effect on targets
+		const elementOver = document.elementFromPoint(x, y);
 		if (elementOver?.classList.contains("drag-target")) {
 			// console.log("touchmove over", elementOver)
 			elementOver.classList.add("dropReady");
@@ -141,12 +166,24 @@
 			lastElementOver?.classList.remove("dropReady");
 		}
 	};
-
+	const touchCancel = (ev) => {
+		console.log("touch cancelled");
+		ev.target.style.opacity = "1";
+		document.querySelector("#drag-image-id").remove();
+		document
+			.querySelector("body.scroll-controlled")
+			.classList.remove("stop-scrolling");
+	};
 	const touchDrop = (ev) => {
-		toggleScroll();
-		const x = ev.changedTouches[0].clientX;
-		const y = ev.changedTouches[0].clientY;
-		// const item = wasteItems[ wasteItems.map(item => item.name).indexOf(ev.target.id) ]
+		const dragImg = document.querySelector("#drag-image-id");
+		const [x, y] = [
+			ev.changedTouches[0].clientX - 25, // - dragImg.style.width / 2,
+			ev.changedTouches[0].clientY - 25// - dragImg.style.height / 2,
+		];
+		
+		document.querySelector("#drag-image-id").remove();
+		ev.target.style.opacity = "1";
+		
 		const dropTargetElement = document.elementFromPoint(x, y);
 		console.log("untested drop target", dropTargetElement);
 		if (dropTargetElement?.classList.contains("drag-target")) {
@@ -174,11 +211,6 @@
 			console.log("wasteItems", wasteItems, "wasteStreams", wasteStreams);
 		}
 	};
-	const toggleScroll = () => {
-		document
-			.querySelector("body.scroll-controlled")
-			.classList.toggle("stop-scrolling");
-	};
 
 	// From the set of all wasteItems, select items equal to 'size'
 	// Algo -
@@ -187,7 +219,7 @@
 	//			Use picked item to get an index for that item.  Splice it and add to 'selected' array
 
 	const selectItems = (arr, size) => {
-		console.log("arr", arr, "size", size);
+		console.log("select from:", [...arr], "size", size);
 		let selected = [];
 		let uniqueTypes = [];
 		// Construct list of unique waste_types
@@ -218,10 +250,11 @@
 			selected.push(arr.splice(Math.random() * arr.length)[0]);
 			remaining -= 1;
 		}
-		selected = selected.map(item => {
-			if(item.image === '') item.image = '../images/no_image_transparent.png'
-			return item
-		})
+		selected = selected.map((item) => {
+			if (item.image === "")
+				item.image = "../images/no_image_transparent.png";
+			return item;
+		});
 		return selected;
 	};
 
@@ -236,12 +269,11 @@
 	// TODO -
 	//	Fetch settings (# of items to be selected?  anything else?)
 	onMount(async () => {
-		settings = await fetchData("settings!A1:2")
+		settings = await fetchData("settings!A1:2");
 		const allWasteItems = await fetchData("wasteItemsOutput!A1:18");
-		handleSettings(settings[0])
-		console.log(wasteItemsCount, 'all waste items', allWasteItems)
+		handleSettings(settings[0]);
 		wasteItems = selectItems(allWasteItems, wasteItemsCount);
-		console.log("fetched and selected wasteItems", wasteItems);
+		console.log("fetched and selected wasteItems", allWasteItems, wasteItems);
 		wasteStreams = await fetchData("wasteStreamsOutput");
 		console.log("fetched wasteStreams", wasteStreams);
 	});
@@ -251,7 +283,7 @@
 	<header>
 		<h2>Waste-sort</h2>
 	</header>
-	<ScoreReport {wasteItems} {wasteStreams} {hiddenScoreReport}/>
+	<ScoreReport {wasteStreams} {hiddenScoreReport} />
 	<section class="drag-sources">
 		{#each wasteItems as w, index (w.name)}
 			<div
@@ -275,14 +307,9 @@
 						on:dragend={(event) => {
 							dragend(event);
 						}}
-						on:touchstart|passive={(ev) => touchStart()}
+						on:touchstart|passive={(ev) => touchStart(ev)}
 						on:touchend={(ev) => touchDrop(ev)}
-						on:touchcancel={(ev) => {
-							console.log("touch cancelled");
-							document
-								.querySelector("body.scroll-controlled")
-								.classList.remove("stop-scrolling");
-						}}
+						on:touchcancel={(ev) => touchCancel(ev)}
 						on:touchmove={(ev) => touchMove(ev)}
 					/>
 
@@ -318,26 +345,28 @@
 					s.dropReady = false;
 				}}
 			>
-			{s.name}
-		</div>
+				{s.name}
+			</div>
 		{/each}
 	</section>
-	
 </main>
 
 <style>
 	:root {
 		--drag-box-height: 125px;
+		--umass-red: rgb(136, 28, 28);
+		--drag-box-height-mobile: 75px;
 	}
 	main {
+		position: relative;
 		margin: 0 auto;
 		height: 100%;
 		width: 100%;
-		
+
 		display: grid;
 		grid-template-rows: 50px 4fr 1fr;
 		grid-template-columns: 1fr 200px;
-		background-image: url('../images/pond_chapel.png');
+		background-image: url("../images/pond_chapel.png");
 		background-position-x: center;
 		/* filter: grayscale(100%) */
 		object-fit: cover;
@@ -371,12 +400,12 @@
 	}
 	.drag-box header {
 		/* width: 100%; */
-		background-color: brown;
+		background-color: var(--umass-red);
 		color: white;
 		padding: 5px;
 	}
 	.drag-targets {
-		padding: 30px;
+		padding: 15px;
 		margin: 0 auto;
 		grid-row: 3 / 4;
 		grid-column: 1 / 3;
@@ -387,8 +416,9 @@
 		justify-content: center;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 30px;
-		background-color: rgba(0,0,0,0.75);
+		gap: 15px;
+		background-color: rgba(0, 0, 0, 0.75);
+		transform: translateZ(1000);
 	}
 	.drag-target {
 		font-size: 1.5em;
@@ -399,6 +429,10 @@
 		display: grid;
 		place-items: center;
 		box-sizing: border-box;
+		padding: 15px;
+	}
+	.drag-target:hover {
+		background-color: magenta;
 	}
 	.drag-target.dropReady {
 		color: magenta;
@@ -414,6 +448,9 @@
 	div.drag-target.incorrectTransitory {
 		animation-duration: 1.5s;
 		animation-name: flashRed;
+	}
+	#drag-image-id {
+		width: 10px;
 	}
 
 	@keyframes flashRed {
@@ -442,6 +479,11 @@
 		to {
 			background-color: grey;
 			scale: 1;
+		}
+	}
+	@media screen and (max-width: 400px) {
+		:root{
+			--drag-box-height: 75px;
 		}
 	}
 </style>
