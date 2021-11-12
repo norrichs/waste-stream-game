@@ -1,7 +1,6 @@
 <script>
 	export let wasteStreams
 	export let hiddenScoreReport
-	export let handleReset
 	
 	
 	
@@ -63,7 +62,7 @@
 		</div>
 		<button class="reset-button" on:click={()=>{
 			console.log('reset')
-			handleReset()
+			location.reload()
 		}}>Reset</button>
 	</div>
 </section>
