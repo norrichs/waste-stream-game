@@ -21,19 +21,51 @@
 		} else hiddenScoreReport = true;
 	}
 
-	const fetchData = async (range) => {
-		// GET DATA FROM GOOGLE SHEET
+
+	let preLoadData = []
+
+	const fetchPreLoad = async () => {
+		// data pre-loader
+		// try to get data to store as a immutable variable
+		// use batch operation
+		const range = 'settings!A1:2'
 
 		const SPREADSHEET_ID = "process.env.SPREADSHEET_ID";
 		const API_KEY = "process.env.API_KEY";
 		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/";
-		let response = await fetch(
-			`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`
-		);
+		const settingsRange = 'settings!A1:2'
+		const itemsRange = "wasteItemsOutput!A1:E"
+		const streamsRange = "wasteStreamsOutput!A1:F"
+		const fetchURL = `${gSheetUrl}${SPREADSHEET_ID}/values:batchGet` + 
+			`?ranges=${settingsRange}` + 
+			`&ranges=${itemsRange}` +
+			`&ranges=${streamsRange}` +
+			`&key=${API_KEY}`
+			// `&valueRenderOption=UNFORMATTED_VALUES&majorDimension=COLUMNS` + 
+		// let response = await fetch(
+		// 	`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`
+		// );
+		let response = await fetch( fetchURL );
+		//	https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId/values:batchGet?
+		// 	ranges=Sheet1!B:B&ranges=Sheet1!D:D&valueRenderOption=UNFORMATTED_VALUES?majorDimension=COLUMNS
 		let data = await response.json();
-		// console.log('data',data)
-		return convertSheetToObject(data.values);
-	};
+		return data.valueRanges
+	}
+	const handleReset = () => {
+		console.log('cached preload', preLoadData)
+		const allSettings = convertSheetToObject([...preLoadData[0].values])
+		console.log('allsettings', allSettings)
+		handleSettings(allSettings[0]);
+		let allWasteItems = convertSheetToObject([...preLoadData[1].values]);
+		console.log('unsanitized items', allWasteItems)
+		let sanitizedWasteItems = sanitizeItems(allWasteItems)
+		console.log('sanitized items', sanitizedWasteItems)
+		wasteItems = selectItems(sanitizedWasteItems, wasteItemsCount);
+		wasteStreams = convertSheetToObject([...preLoadData[2].values])
+		console.log("all and selected wasteItems", allWasteItems, wasteItems);
+		console.log("wasteStreams", wasteStreams);	
+	}
+
 
 	// Constructs a structured JS object based on data found in sheet
 	//	Not-generalizable.  Has special behavior to interpret arrays and booleans
@@ -77,7 +109,6 @@
 	};
 
 	const handleSettings = (settings) => {
-		console.log(settings);
 		wasteItemsCount = parseInt(settings.wasteItemsCount);
 		adminMode = settings.adminMode;
 	};
@@ -217,6 +248,16 @@
 	//		Loop through unique types
 	//			Filter items by a type, then choose a random item from filtered list.
 	//			Use picked item to get an index for that item.  Splice it and add to 'selected' array
+	const sanitizeItems = (items) => {
+		return (items.filter(item => item.waste_type !== undefined)
+			.map(item => {
+				if(item.image === '' || item.image === undefined){
+					item.image = "../images/no_image_transparent.png"
+				}
+				return item
+			})
+		)
+	}
 
 	const selectItems = (arr, size) => {
 		console.log("select from:", [...arr], "size", size);
@@ -240,42 +281,31 @@
 				itemsFilteredByType[
 					Math.floor(Math.random() * itemsFilteredByType.length)
 				];
+			if(randItemOfType===undefined){
+				console.log('type', type, itemsFilteredByType)
+			}else{
+				console.log('this random item of type...', randItemOfType)
+			}
 			const indexOfRandItemOfType = arr
 				.map((item) => item.name)
 				.indexOf(randItemOfType.name);
 			selected.push(arr.splice(indexOfRandItemOfType, 1)[0]);
+			console.log('select items -> source size', arr.length, 'selected size', selected.length)
 		});
+
 		let remaining = size - selected.length;
 		while (remaining > 0) {
-			selected.push(arr.splice(Math.random() * arr.length)[0]);
+			selected.push(arr.splice(Math.random() * arr.length, 1)[0]);
 			remaining -= 1;
+			console.log('remaining', remaining,'select items -> source size', arr.length, 'selected size', selected.length)
 		}
-		selected = selected.map((item) => {
-			if (item.image === "")
-				item.image = "../images/no_image_transparent.png";
-			return item;
-		});
 		return selected;
 	};
 
-	const getSheetsData = () => {
-		console.log("get data");
-	};
-
-	// Initial data setup
-	// 	Fetches all data from Google Sheet.
-	//	Selects random items to play sorting game
-
-	// TODO -
-	//	Fetch settings (# of items to be selected?  anything else?)
 	onMount(async () => {
-		settings = await fetchData("settings!A1:2");
-		const allWasteItems = await fetchData("wasteItemsOutput!A1:18");
-		handleSettings(settings[0]);
-		wasteItems = selectItems(allWasteItems, wasteItemsCount);
-		console.log("fetched and selected wasteItems", allWasteItems, wasteItems);
-		wasteStreams = await fetchData("wasteStreamsOutput");
-		console.log("fetched wasteStreams", wasteStreams);
+		preLoadData = await fetchPreLoad()
+		console.log('initial preload', preLoadData)
+		handleReset()
 	});
 </script>
 
@@ -283,7 +313,8 @@
 	<header>
 		<h2>Waste-sort</h2>
 	</header>
-	<ScoreReport {wasteStreams} {hiddenScoreReport} />
+	<ScoreReport {wasteStreams} {hiddenScoreReport} {handleReset}/>
+	
 	<section class="drag-sources">
 		{#each wasteItems as w, index (w.name)}
 			<div
