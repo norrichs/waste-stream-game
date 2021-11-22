@@ -1,5 +1,6 @@
 /node_modules/
 /public/build/
 /secrets/
+sheetsdata-330421-3cee1c1795f1.json
 .env
 .DS_Store
