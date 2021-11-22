@@ -15,8 +15,8 @@
 
 <style>
 	.waste-item-container{
-		width: 125px;
-		height: 125px;
+		width: var(--drag-box-width);
+		height: var(--drag-box-height);
 		overflow: visible;
 		border-radius: 10px 10px 5px 5px;
 		background-color: rgba(255, 200, 200, 0.1);
@@ -45,9 +45,12 @@
 	}
 
 	.waste-item-box :global(img) {
-		width: 75px;
+		max-height: var(--drag-box-height);
+		max-width: var(--drag-box-width);
+		/* position: absolute; */
+		/* transform-origin: center;
 		top: 0;
-		left: calc((125px - 75px) / 2);
-		position: absolute;
+		left: 0; */
+		/* border: 1px solid magenta; */
 	}
 </style>

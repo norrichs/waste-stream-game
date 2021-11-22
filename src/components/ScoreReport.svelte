@@ -35,14 +35,14 @@
 	
 
 <h2>Score: {sortScore}</h2>
-
 <section class="score-report-container" class:hiddenScoreReport={hiddenScoreReport}>
 	<div class="score-report">
 		<h2>Report:</h2>
 		<h3>correct answers: {sortScore}</h3>
 		<div class="report-grid">
 			{#each wasteStreams as s}
-				<h4>{s.name}</h4>
+				<!-- <h4>{s.name}</h4> -->
+				<img class="report-label" src={s.image} alt={s.name}>
 				<ul>
 					{#each s.items as item}
 						<li
@@ -74,7 +74,7 @@
 		margin: 30px auto;
 	}
 	h4{
-		margin: 0 0 0 30px;
+		margin: 0 0 0 10px;
 	}
 	ul{
 		margin: 0 0 20px 0;
@@ -84,6 +84,7 @@
 	}
 	.score-report-container {
 		position: absolute;
+		z-index: 100;
 		left: 0;
 		right: 0;
 		top: 0;
@@ -107,10 +108,13 @@
 	}
 	.report-grid{
 		display: grid;
-		grid-template-columns: 1fr 5fr;
+		grid-template-columns: 200px 5fr;
 		overflow-y: scroll;
 		overflow-x: hidden;
 
+	}
+	.report-label{
+		max-width: 190px;
 	}
 	.correct,
 	.incorrect {

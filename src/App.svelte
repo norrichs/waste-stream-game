@@ -357,14 +357,16 @@
 <main>
 	<header>
 		<img src="./images/MZYH_logo.png" alt="Make Zero Your Hero">
-		<h1>UMass Waste Sort Game</h1>
+		<span>
+			<h1>UMass Waste Sort Game</h1>
+			<ScoreReport {wasteStreams} {hiddenScoreReport} {handleReset} />
+		</span>
 		<!-- <button
 			on:click={() => writeResults(["test", 1, 2, "recyclable", true])}
 			>Test write</button
 		> -->
 	</header>
 	<section class="sort-game">
-		<ScoreReport {wasteStreams} {hiddenScoreReport} {handleReset} />
 		<section class="drag-sources">
 			{#each wasteItems as w, index (w.name)}
 				<Item itemObj={w}>
@@ -387,7 +389,7 @@
 		<section class="drag-targets">
 			{#each wasteStreams as s, index (s.name)}
 				<div
-					class="drag-target-container" 
+					class={"drag-target-container cell" + index} 
 					style="background-image: url('{s.image}')" >
 					<div
 						id={s.name}
@@ -400,6 +402,7 @@
 							drop(event, index);
 						}}
 						on:dragenter|preventDefault={(event) => {
+							console.log('drag enter', event)
 							s.incorrectTransitory = false;
 							s.correctTransitory = false;
 							s.dropReady = true;
@@ -419,9 +422,20 @@
 
 <style>
 	:root {
-		--drag-box-height: 125px;
 		--umass-red: rgb(136, 28, 28);
 		--drag-box-height-mobile: 75px;
+		/* Waste Item Source Layout */
+		--items-per-row: 4;
+		--item-gap: 5vw;
+		--drag-box-width: calc( (90vw - var(--item-gap) * var(--items-per-row)) / var(--items-per-row));
+		--drag-box-height: calc( var(--drag-box-width) * 0.75);
+		
+
+		/* Waste Stream Target Layout */
+		--stream-section-gap: 20px;
+		--target-gap: 10px;
+		--target-width: calc(( 100vw - var(--stream-section-gap) - 7 * var(--target-gap)) / 5);
+		
 	}
 	main {
 		position: relative;
@@ -432,75 +446,91 @@
 
 	}
 	main > header {
-		position: relative;
+		/* position: relative; */
 		display: flex;
 		flex-direction: row;
-		justify-content: center;
+		gap: 30px;
+		justify-content: flex-start;
 		background-color: var(--umass-red);
 		height: 75px;
 	}
 	header > img {
 		height: 100px;
-		position: absolute;
+		/* position: absolute; */
+		margin: 10px 0 0 30px;
 		left: 30px;
 		top: 10px;
 	}
-	header > h1{
+	header > span{
+		padding-right: 30px;
+		width: 100%;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+	}
+	header h1{
 		color: white;
 	}
 	section.sort-game{
 		height: 100%;
 		display: grid;
-		grid-template-rows: 4fr 100px;
-		grid-template-columns: 1fr 200px;
+		grid-template-rows: 1fr calc( var(--target-width) / 2 + var(--target-gap) * 2);
+		grid-template-columns: 1fr;
 		background-image: url("../images/pond_chapel.png");
 		background-size: cover;
 		background-position: center bottom;
+		/* border: 1px solid magenta; */
 		/* filter: grayscale(100%) */
 
 	}
-
+	
 	.drag-sources {
 		grid-row: 1 / 2;
-		grid-column: 1 / 3;
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		align-items: flex-start;
-		flex-wrap: wrap;
-		padding: 30px;
-		gap: 30px;
-	}
-	.drag-targets {
-		padding: 15px;
-		margin: 0 auto;
-		grid-row: 2 / 3;
-		grid-column: 1 / 3;
-		/* width: 100%; */
-		max-width: 90vw;
+		grid-column: 1 / 2;
 		display: flex;
 		flex-direction: row;
 		justify-content: center;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 15px;
-		margin-bottom: 30px;
+		padding: 30px;
+		gap: 30px;
 	}
+	.drag-targets {
+		position: absolute;
+		bottom: 0px;
+		grid-row: 2 / 3;
+		grid-column: 1 / 2;
+
+	}
+	/* Drag Target Layout */
+	.drag-targets {
+		width: 100%;
+		display: grid;
+		grid-template-areas: "cell0 cell1 cell2 . cell3 cell4";
+		grid-template-columns: repeat(3, var(--target-width)) var(--stream-section-gap) repeat(2, var(--target-width));
+		grid-template-rows: 1fr;
+		gap: var(--target-gap);
+		padding: var(--target-gap);
+		
+	}
+	.cell0{ grid-area: cell0}
+	.cell1{ grid-area: cell1}
+	.cell2{ grid-area: cell2}
+	.cell3{ grid-area: cell3}
+	.cell4{ grid-area: cell4}
+
 	.drag-target-container{
+		width: var(--target-width);
+		height: calc( var(--target-width) / 2);
 		background-size: cover;
 		background-position: center;
 		border-radius: 10px;
-
 		box-shadow: 0 0 20px 5px black
-
-
 	}
 	.drag-target {
-		min-width: calc(var(--drag-box-height) * 0.6 * 2 );
-		height: calc( var(--drag-box-height) * 0.6);
-		background-color: transparent;
-		display: grid;
-		place-items: center;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0,0,0,.01);
 		box-sizing: border-box;
 		border-radius: 10px;
 	}
