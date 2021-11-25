@@ -1,5 +1,7 @@
 <script>
 	export let itemObj
+	// export let itemsPerRowDefault;
+	// export let itemsPerRowMobile;
 
 </script>
 
@@ -17,6 +19,7 @@
 	.waste-item-container{
 		width: var(--drag-box-width);
 		height: var(--drag-box-height);
+		max-height: var(--drag-box-max-height);
 		overflow: visible;
 		border-radius: 10px 10px 5px 5px;
 		background-color: rgba(255, 200, 200, 0.1);

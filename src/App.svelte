@@ -10,12 +10,16 @@
 	const API_KEY = "process.env.API_KEY";
 
 	let wasteItemsCount = 8;
+	let itemsPerRowMobile = 3;
+	let itemsPerRowDefault = 4;
 	let adminMode = false;
 	let wasteStreams = [];
 	let wasteItems = [];
 	let settings = [];
 	let lastElementOver;
 	let hiddenScoreReport = true;
+
+
 	$: {
 		if (wasteItems.length === 0) {
 			document
@@ -53,7 +57,6 @@
 		// data pre-loader
 		// try to get data to store as a immutable variable
 		// use batch operation
-		const range = "settings!A1:2";
 
 		const gSheetUrl = "https://sheets.googleapis.com/v4/spreadsheets/";
 		const settingsRange = "settings!A1:2";
@@ -65,13 +68,7 @@
 			`&ranges=${itemsRange}` +
 			`&ranges=${streamsRange}` +
 			`&key=${API_KEY}`;
-		// `&valueRenderOption=UNFORMATTED_VALUES&majorDimension=COLUMNS` +
-		// let response = await fetch(
-		// 	`${gSheetUrl}${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`
-		// );
 		let response = await fetch(fetchURL);
-		//	https://sheets.googleapis.com/v4/spreadsheets/spreadsheetId/values:batchGet?
-		// 	ranges=Sheet1!B:B&ranges=Sheet1!D:D&valueRenderOption=UNFORMATTED_VALUES?majorDimension=COLUMNS
 		let data = await response.json();
 		return data.valueRanges;
 	};
@@ -134,6 +131,8 @@
 	const handleSettings = (settings) => {
 		wasteItemsCount = parseInt(settings.wasteItemsCount);
 		adminMode = settings.adminMode;
+		itemsPerRowMobile = parseInt(settings.itemsPerRowMobile)
+		itemsPerRowDefault = parseInt(settings.itemsPerRowDefault)
 	};
 
 	//  Drag event handler functions
@@ -346,11 +345,16 @@
 		}
 		return selected;
 	};
-
+	const addCSSToRoot = () => {
+		const root = document.querySelector(":root")
+		console.log("root",root)
+		root.style.setProperty("--test-var", "blue")
+	}
 	onMount(async () => {
 		preLoadData = await fetchPreLoad();
 		console.log("initial preload", preLoadData);
 		handleReset();
+		addCSSToRoot()
 	});
 </script>
 
@@ -360,6 +364,7 @@
 		<span>
 			<h1>UMass Waste Sort Game</h1>
 			<ScoreReport {wasteStreams} {hiddenScoreReport} {handleReset} />
+			<!-- <div id="testDiv">testDiv</div> -->
 		</span>
 		<!-- <button
 			on:click={() => writeResults(["test", 1, 2, "recyclable", true])}
@@ -369,7 +374,7 @@
 	<section class="sort-game">
 		<section class="drag-sources">
 			{#each wasteItems as w, index (w.name)}
-				<Item itemObj={w}>
+				<Item itemObj={w} {itemsPerRowDefault} {itemsPerRowMobile} >
 					<img
 						id={w.name}
 						src={w.image}
@@ -421,11 +426,16 @@
 </main>
 
 <style>
+	#testDiv{
+		width: 50px;
+		height: 50px;
+		background-color: var(--test-var, red);
+	}
 	:root {
 		--umass-red: rgb(136, 28, 28);
 		--drag-box-height-mobile: 75px;
 		/* Waste Item Source Layout */
-		--items-per-row: 4;
+		--items-per-row: 3;
 		--item-gap: 5vw;
 		--drag-box-width: calc( (90vw - var(--item-gap) * var(--items-per-row)) / var(--items-per-row));
 		--drag-box-height: calc( var(--drag-box-width) * 0.75);
@@ -453,6 +463,7 @@
 		justify-content: flex-start;
 		background-color: var(--umass-red);
 		height: 75px;
+		overflow: visible;
 	}
 	header > img {
 		height: 100px;
@@ -476,7 +487,7 @@
 		display: grid;
 		grid-template-rows: 1fr calc( var(--target-width) / 2 + var(--target-gap) * 2);
 		grid-template-columns: 1fr;
-		background-image: url("../images/pond_chapel.png");
+		background-image: url("../images/pond_chapel_cropped.png");
 		background-size: cover;
 		background-position: center bottom;
 		/* border: 1px solid magenta; */
@@ -485,15 +496,28 @@
 	}
 	
 	.drag-sources {
+		/* padding-top: 30px; */
+		margin: 60px auto calc(var(--target-width) / 2 ) auto;
+		max-width: 1000px;
 		grid-row: 1 / 2;
 		grid-column: 1 / 2;
-		display: flex;
+		
+		display: grid;
+		grid-template-columns: repeat(var(--items-per-row), 1fr);
+		
+
+
+		/* display: flex;
 		flex-direction: row;
 		justify-content: center;
-		align-items: center;
-		flex-wrap: wrap;
-		padding: 30px;
+		align-items: flex-start;
+		flex-wrap: wrap; */
+		/* padding: 60px 0px; */
 		gap: 30px;
+
+
+
+
 	}
 	.drag-targets {
 		position: absolute;
@@ -584,9 +608,45 @@
 			/* scale: 1; */
 		}
 	}
+	@media screen and (max-width: 800px){
+		.drag-targets{
+			gap: 0;
+			padding: 0;
+			background-color: rgba(0,0,0,.7);
+			grid-template-areas: " cell0 cell1 cell2 . cell3 cell4";
+			grid-template-rows: 1fr;
+			grid-template-columns: repeat(3, 1fr) 20px repeat(2, 1fr);
+			box-shadow: 0 0 10px 1px black;
+		}
+		.drag-target-container, .drag-target {
+			box-shadow: none;
+			border-radius: 0;
+			width: calc((100vw - 20px) / 5);
+			height: calc((100vw - 20px) / 10);
+		}
+	}
 	@media screen and (max-width: 400px) {
 		:root {
 			--drag-box-height: 75px;
+		}
+		main > header {
+			background-color: var(--umass-red);
+		}
+		.drag-targets{
+			gap: 0;
+			padding: 0;
+			background-color: rgba(0,0,0,.9);
+			grid-template-areas: " cell0 cell0 cell1 cell1 cell2 cell2"
+								 " .     cell3 cell3 cell4 cell4 .    ";
+			grid-template-rows: 1fr 1fr;
+			grid-template-columns: repeat(6, 1fr);
+			box-shadow: 0 0 10px 1px black;
+		}
+		.drag-target-container, .drag-target {
+			box-shadow: none;
+			border-radius: 0;
+			width: calc(100vw / 3);
+			height: calc(100vw / 6);
 		}
 	}
 </style>
