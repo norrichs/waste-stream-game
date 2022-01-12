@@ -2,9 +2,7 @@
 	import { onMount } from "svelte";
 	import ScoreReport from "./components/ScoreReport.svelte";
 	import Item from "./components/Item.svelte";
-
-	import { flip } from "svelte/animate";
-	import { quintOut } from "svelte/easing";
+	import Modal from "./components/Modal.svelte";
 
 	const SPREADSHEET_ID = "process.env.SPREADSHEET_ID";
 	const API_KEY = "process.env.API_KEY";
@@ -15,18 +13,20 @@
 	let adminMode = false;
 	let wasteStreams = [];
 	let wasteItems = [];
-	let settings = [];
+	let settings = [0];
 	let lastElementOver;
-	let hiddenScoreReport = true;
-
+	let showReport = false;
+	let showWelcome = true;
+	let showCertificate = false;
+	let welcomeCopy = []
 
 	$: {
 		if (wasteItems.length === 0) {
 			document
 				.querySelector("body.scroll-controlled")
 				.classList.add("stop-scrolling");
-			hiddenScoreReport = false;
-		} else hiddenScoreReport = true;
+			showReport = true;
+		} else showReport = false;
 	}
 
 	let preLoadData = [];
@@ -73,8 +73,14 @@
 		return data.valueRanges;
 	};
 	const handleReset = () => {
+		document
+				.querySelector("body.scroll-controlled")
+				.classList.remove("stop-scrolling")
+
+
 		console.log("cached preload", preLoadData);
 		const allSettings = convertSheetToObject([...preLoadData[0].values]);
+		settings = [...allSettings];
 		console.log("allsettings", allSettings);
 		handleSettings(allSettings[0]);
 		let allWasteItems = convertSheetToObject([...preLoadData[1].values]);
@@ -86,6 +92,10 @@
 		console.log("all and selected wasteItems", allWasteItems, wasteItems);
 		console.log("wasteStreams", wasteStreams);
 	};
+
+	const handleDone = () => {
+		showCertificate = true
+	}
 
 	// Constructs a structured JS object based on data found in sheet
 	//	Not-generalizable.  Has special behavior to interpret arrays and booleans
@@ -127,12 +137,19 @@
 			return obj;
 		});
 	};
-
+	const parseParagraph = (str) => {
+		console.log('PARSING', str)
+		const arr = str.split("\n")
+		console.log('paragraph ->',arr)
+		return arr
+	}
 	const handleSettings = (settings) => {
 		wasteItemsCount = parseInt(settings.wasteItemsCount);
 		adminMode = settings.adminMode;
-		itemsPerRowMobile = parseInt(settings.itemsPerRowMobile)
-		itemsPerRowDefault = parseInt(settings.itemsPerRowDefault)
+		console.log('handle settings welcome copy', settings.welcomeText)
+		welcomeCopy = parseParagraph(settings.welcomeText)
+		itemsPerRowMobile = parseInt(settings.itemsPerRowMobile);
+		itemsPerRowDefault = parseInt(settings.itemsPerRowDefault);
 	};
 
 	//  Drag event handler functions
@@ -214,16 +231,16 @@
 		dragImg.style.left = x + "px";
 
 		// briefly hide dragImg
-		dragImg.style.display = "none"
+		dragImg.style.display = "none";
 
 		// handle hover effect on targets
 		const elementOver = document.elementFromPoint(x, y);
 		if (elementOver?.classList.contains("drag-target")) {
-			console.log("drag target touchmove over", elementOver)
+			console.log("drag target touchmove over", elementOver);
 			elementOver.classList.add("dropReady");
 			lastElementOver = elementOver;
 		} else {
-			console.log("touchmove over", elementOver)
+			console.log("touchmove over", elementOver);
 			lastElementOver?.classList.remove("dropReady");
 		}
 		// restore dragImg
@@ -284,7 +301,11 @@
 		return items
 			.filter((item) => item.waste_type !== undefined)
 			.map((item) => {
-				if (item.image === "" || item.image === "rb" || item.image === undefined) {
+				if (
+					item.image === "" ||
+					item.image === "rb" ||
+					item.image === undefined
+				) {
 					item.image = "../images/no_image_transparent.png";
 				}
 				return item;
@@ -346,56 +367,80 @@
 		return selected;
 	};
 	const addCSSToRoot = () => {
-		const root = document.querySelector(":root")
-		console.log("root",root)
-		root.style.setProperty("--test-var", "blue")
-	}
+		const root = document.querySelector(":root");
+		console.log("root", root);
+		root.style.setProperty("--test-var", "blue");
+	};
+	const removeWelcome = () => {
+		showWelcome = false;
+	};
 	onMount(async () => {
 		preLoadData = await fetchPreLoad();
 		console.log("initial preload", preLoadData);
 		handleReset();
-		addCSSToRoot()
+		addCSSToRoot();
 	});
+
 </script>
 
 <main>
 	<header>
-		<img src="./images/MZYH_logo.png" alt="Make Zero Your Hero">
+		<img src="./images/MZYH_logo.png" alt="Make Zero Your Hero" />
 		<span>
 			<h1>UMass Waste Sort Game</h1>
-			<ScoreReport {wasteStreams} {hiddenScoreReport} {handleReset} />
-			<!-- <div id="testDiv">testDiv</div> -->
+			<!-- <ScoreReport {wasteStreams} {hiddenScoreReport} {handleReset} /> -->
+			{#if showReport}
+				<Modal>
+					<h1 slot="title">Score Report</h1>
+					
+						<ScoreReport {wasteStreams} slot="content"/>
+				
+					<div slot="buttons">
+						<button on:click={handleDone}>Done</button>
+						<button on:click={handleReset}>Play Again</button>
+					</div>
+				</Modal>
+			{/if}
+			{#if showWelcome}
+				<Modal>
+					<h1 slot="title">Welcome!</h1>
+					<div class="modal-slot-content" slot="content">
+						{#each welcomeCopy as line}
+							<p>{line}</p>
+						{/each}
+					</div>
+					<div slot="buttons">
+						<button on:click={removeWelcome}>Start the game</button>
+					</div>
+				</Modal>
+			{/if}
 		</span>
-		<!-- <button
-			on:click={() => writeResults(["test", 1, 2, "recyclable", true])}
-			>Test write</button
-		> -->
 	</header>
 	<section class="sort-game">
 		<section class="drag-sources">
 			{#each wasteItems as w, index (w.name)}
-				<Item itemObj={w} {itemsPerRowDefault} {itemsPerRowMobile} >
+				<Item itemObj={w} {itemsPerRowDefault} {itemsPerRowMobile}>
 					<img
 						id={w.name}
 						src={w.image}
 						alt={w.name}
 						draggable="true"
-						on:dragstart={ev => dragstart(ev, index)}
-						on:dragend={ev => dragend(ev)}
+						on:dragstart={(ev) => dragstart(ev, index)}
+						on:dragend={(ev) => dragend(ev)}
 						on:touchstart|passive={(ev) => touchStart(ev)}
 						on:touchend={(ev) => touchDrop(ev)}
 						on:touchcancel={(ev) => touchCancel(ev)}
 						on:touchmove={(ev) => touchMove(ev)}
 					/>
 				</Item>
-		
 			{/each}
 		</section>
 		<section class="drag-targets">
 			{#each wasteStreams as s, index (s.name)}
 				<div
-					class={"drag-target-container cell" + index} 
-					style="background-image: url('{s.image}')" >
+					class={"drag-target-container cell" + index}
+					style="background-image: url('{s.image}')"
+				>
 					<div
 						id={s.name}
 						class="drag-target"
@@ -407,7 +452,7 @@
 							drop(event, index);
 						}}
 						on:dragenter|preventDefault={(event) => {
-							console.log('drag enter', event)
+							console.log("drag enter", event);
 							s.incorrectTransitory = false;
 							s.correctTransitory = false;
 							s.dropReady = true;
@@ -417,16 +462,18 @@
 						on:dragleave={(event) => {
 							s.dropReady = false;
 						}}
-					>
-					</div>
+					/>
 				</div>
 			{/each}
+		</section>
+		<section class="modals">
+			<!-- <Modal {content} {buttons}/> -->
 		</section>
 	</section>
 </main>
 
 <style>
-	#testDiv{
+	#testDiv {
 		width: 50px;
 		height: 50px;
 		background-color: var(--test-var, red);
@@ -437,23 +484,37 @@
 		/* Waste Item Source Layout */
 		--items-per-row: 3;
 		--item-gap: 5vw;
-		--drag-box-width: calc( (90vw - var(--item-gap) * var(--items-per-row)) / var(--items-per-row));
-		--drag-box-height: calc( var(--drag-box-width) * 0.75);
-		
+		--drag-box-width: calc(
+			(90vw - var(--item-gap) * var(--items-per-row)) /
+				var(--items-per-row)
+		);
+		--drag-box-maxwidth: calc(
+			(1024px - var(--item-gap) * var(--items-per-row)) /
+				var(--items-per-row)
+		);
+		--drag-box-height: calc(var(--drag-box-width) * 0.75);
+		--drag-box-maxheight: calc(var(--drag-box-maxwidth) * 0.75);
+
+		/* Modal */
+		--modal-margin: 30px;
+		--modal-header-height: 70px;
+		--modal-footer-height: 60px;
+		--modal-border-radius: 30px;
 
 		/* Waste Stream Target Layout */
 		--stream-section-gap: 20px;
 		--target-gap: 10px;
-		--target-width: calc(( 100vw - var(--stream-section-gap) - 7 * var(--target-gap)) / 5);
-		
+		--target-width: calc(
+			(100vw - var(--stream-section-gap) - 7 * var(--target-gap)) / 5
+		);
 	}
 	main {
 		position: relative;
 		margin: 0 auto;
 		height: 100%;
 		width: 100%;
+		/* max-width: 1024px; */
 		box-sizing: border-box;
-
 	}
 	main > header {
 		/* position: relative; */
@@ -472,40 +533,40 @@
 		left: 30px;
 		top: 10px;
 	}
-	header > span{
+	header > span {
 		padding-right: 30px;
 		width: 100%;
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 	}
-	header h1{
+	header h1 {
 		color: white;
 	}
-	section.sort-game{
+	section.sort-game {
 		height: 100%;
+		/* max-width: 1024px; */
 		display: grid;
-		grid-template-rows: 1fr calc( var(--target-width) / 2 + var(--target-gap) * 2);
+		grid-template-rows: 1fr calc(
+				var(--target-width) / 2 + var(--target-gap) * 2
+			);
 		grid-template-columns: 1fr;
 		background-image: url("../images/pond_chapel_cropped.png");
 		background-size: cover;
 		background-position: center bottom;
 		/* border: 1px solid magenta; */
 		/* filter: grayscale(100%) */
-
 	}
-	
+
 	.drag-sources {
 		/* padding-top: 30px; */
-		margin: 60px auto calc(var(--target-width) / 2 ) auto;
+		margin: 60px auto calc(var(--target-width) / 2) auto;
 		max-width: 1000px;
 		grid-row: 1 / 2;
 		grid-column: 1 / 2;
-		
+
 		display: grid;
 		grid-template-columns: repeat(var(--items-per-row), 1fr);
-		
-
 
 		/* display: flex;
 		flex-direction: row;
@@ -514,58 +575,64 @@
 		flex-wrap: wrap; */
 		/* padding: 60px 0px; */
 		gap: 30px;
-
-
-
-
 	}
-	.drag-targets {
+	section.drag-targets {
 		position: absolute;
 		bottom: 0px;
 		grid-row: 2 / 3;
 		grid-column: 1 / 2;
-
 	}
 	/* Drag Target Layout */
 	.drag-targets {
 		width: 100%;
 		display: grid;
 		grid-template-areas: "cell0 cell1 cell2 . cell3 cell4";
-		grid-template-columns: repeat(3, var(--target-width)) var(--stream-section-gap) repeat(2, var(--target-width));
+		grid-template-columns: repeat(3, var(--target-width)) var(
+				--stream-section-gap
+			) repeat(2, var(--target-width));
 		grid-template-rows: 1fr;
 		gap: var(--target-gap);
 		padding: var(--target-gap);
-		
 	}
-	.cell0{ grid-area: cell0}
-	.cell1{ grid-area: cell1}
-	.cell2{ grid-area: cell2}
-	.cell3{ grid-area: cell3}
-	.cell4{ grid-area: cell4}
+	.cell0 {
+		grid-area: cell0;
+	}
+	.cell1 {
+		grid-area: cell1;
+	}
+	.cell2 {
+		grid-area: cell2;
+	}
+	.cell3 {
+		grid-area: cell3;
+	}
+	.cell4 {
+		grid-area: cell4;
+	}
 
-	.drag-target-container{
+	.drag-target-container {
 		width: var(--target-width);
-		height: calc( var(--target-width) / 2);
+		height: calc(var(--target-width) / 2);
 		background-size: cover;
 		background-position: center;
 		border-radius: 10px;
-		box-shadow: 0 0 20px 5px black
+		box-shadow: 0 0 20px 5px black;
 	}
 	.drag-target {
 		width: 100%;
 		height: 100%;
-		background-color: rgba(0,0,0,.01);
+		background-color: rgba(0, 0, 0, 0.01);
 		box-sizing: border-box;
 		border-radius: 10px;
 	}
-	
+
 	.drag-target.dropReady {
 		color: white;
 		/* border: 5px solid; */
 		box-shadow: 0 0 50px 10px;
 		transition: 400ms;
 	}
-	
+
 	div.drag-target.correctTransitory {
 		animation-duration: 1.5s;
 		animation-name: flashGreen;
@@ -608,17 +675,18 @@
 			/* scale: 1; */
 		}
 	}
-	@media screen and (max-width: 800px){
-		.drag-targets{
+	@media screen and (max-width: 800px) {
+		.drag-targets {
 			gap: 0;
 			padding: 0;
-			background-color: rgba(0,0,0,.7);
+			background-color: rgba(0, 0, 0, 0.7);
 			grid-template-areas: " cell0 cell1 cell2 . cell3 cell4";
 			grid-template-rows: 1fr;
 			grid-template-columns: repeat(3, 1fr) 20px repeat(2, 1fr);
 			box-shadow: 0 0 10px 1px black;
 		}
-		.drag-target-container, .drag-target {
+		.drag-target-container,
+		.drag-target {
 			box-shadow: none;
 			border-radius: 0;
 			width: calc((100vw - 20px) / 5);
@@ -632,17 +700,19 @@
 		main > header {
 			background-color: var(--umass-red);
 		}
-		.drag-targets{
+		.drag-targets {
 			gap: 0;
 			padding: 0;
-			background-color: rgba(0,0,0,.9);
-			grid-template-areas: " cell0 cell0 cell1 cell1 cell2 cell2"
-								 " .     cell3 cell3 cell4 cell4 .    ";
+			background-color: rgba(0, 0, 0, 0.9);
+			grid-template-areas:
+				" cell0 cell0 cell1 cell1 cell2 cell2"
+				" .     cell3 cell3 cell4 cell4 .    ";
 			grid-template-rows: 1fr 1fr;
 			grid-template-columns: repeat(6, 1fr);
 			box-shadow: 0 0 10px 1px black;
 		}
-		.drag-target-container, .drag-target {
+		.drag-target-container,
+		.drag-target {
 			box-shadow: none;
 			border-radius: 0;
 			width: calc(100vw / 3);
