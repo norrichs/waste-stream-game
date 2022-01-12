@@ -18,7 +18,9 @@
 <style>
 	.waste-item-container{
 		width: var(--drag-box-width);
+		max-width: var(--drag-box-maxwidth);
 		height: var(--drag-box-height);
+		max-width: var(--drag-box-maxheight);
 		max-height: var(--drag-box-max-height);
 		overflow: visible;
 		border-radius: 10px 10px 5px 5px;
@@ -35,14 +37,13 @@
 		margin: 0;
 	}
 	.waste-item-box{
-		
-		/* border: 1px solid black; */
 		padding: 0;
 		width: 100%;
-		display: grid;
-		place-items: center;
+		/* height: 100%; */
+		/* display: grid; */
+		/* place-items: center; */
 		position: relative;
-		/* background-color: red; */
+		/* border: 5px solid magenta; */
 
 
 	}
@@ -50,10 +51,10 @@
 	.waste-item-box :global(img) {
 		max-height: var(--drag-box-height);
 		max-width: var(--drag-box-width);
-		/* position: absolute; */
-		/* transform-origin: center;
-		top: 0;
-		left: 0; */
-		/* border: 1px solid magenta; */
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translateX(-50%);
+		/* border: 1px dotted black; */
 	}
 </style>
