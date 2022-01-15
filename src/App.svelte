@@ -555,7 +555,7 @@
 		display: grid;
 		grid-template-columns: repeat(var(--items-per-row), 1fr);
 		gap: 30px;
-		background-color: rgba(25, 0, 255, 0.315);
+		/* background-color: rgba(25, 0, 255, 0.315); */
 	}
 	section.drag-targets {
 		position: absolute;
