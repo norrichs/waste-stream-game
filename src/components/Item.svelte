@@ -53,4 +53,9 @@
 		transform: translateX(-50%);
 		/* border: 1px dotted black; */
 	}
+	@media only screen and (max-width: 768px){
+		.waste-item-container header {
+			font-size: 0.75em;
+		}
+	}
 </style>

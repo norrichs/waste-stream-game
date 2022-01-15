@@ -456,6 +456,12 @@
 		background-color: var(--test-var, red);
 	}
 	:root {
+		/* Break points */
+		--break-point-mobile: 768px;
+		--break-point-tablet: 992px;
+
+		
+		/***/
 		--umass-red: rgb(136, 28, 28);
 		--drag-box-height-mobile: 75px;
 		/* Waste Item Source Layout */
@@ -486,7 +492,7 @@
 			(var(--target-group-width) - var(--stream-section-gap) - 7 * var(--target-gap)) / 5
 		);
 	}
-	@media screen and (max-width: 400px) {
+	@media screen and (max-width: 768px) {
 		:root {
 			--items-per-row: var(--items-per-row-mobile);
 			/* Modal */
@@ -651,7 +657,7 @@
 			background-color: transparent;
 		}
 	}
-	@media screen and (max-width: 800px) {
+	@media only screen and (max-width: 768px) {
 		.drag-targets {
 			gap: 0;
 			padding: 0;
@@ -669,15 +675,14 @@
 			height: calc((100vw - 20px) / 10);
 		}
 	}
-	@media screen and (max-width: 400px) {
+	@media screen and (max-width: 768px) {
 		:root {
 			--drag-box-height: 75px;
 		}
 		main header h1 {
-			font-size: 2em;
+			font-size: 1.5em;
 		}
 		main > header > span {
-			background-color: indigo;
 			padding: 0;
 		}
 		main > header > img {

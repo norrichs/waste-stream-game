@@ -121,7 +121,7 @@
 		background-color: lightpink;
 	}
 
-	@media screen and (max-width: 400px) {
+	@media screen and (max-width: 768px) {
 		.report-label {
 			width: 90px;
 		}
