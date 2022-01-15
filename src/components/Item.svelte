@@ -1,7 +1,9 @@
 <script>
 	export let itemObj
-	// export let itemsPerRowDefault;
-	// export let itemsPerRowMobile;
+	export let itemsPerRowDefault;
+	export let itemsPerRowMobile;
+
+	// console.debug('item props', itemObj, itemsPerRowDefault, itemsPerRowMobile)
 
 </script>
 
@@ -39,13 +41,7 @@
 	.waste-item-box{
 		padding: 0;
 		width: 100%;
-		/* height: 100%; */
-		/* display: grid; */
-		/* place-items: center; */
 		position: relative;
-		/* border: 5px solid magenta; */
-
-
 	}
 
 	.waste-item-box :global(img) {

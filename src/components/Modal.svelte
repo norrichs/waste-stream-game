@@ -82,18 +82,11 @@
 	}
 	
 	.modal-body{
-		/* height: 100%; */
-		/* display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		align-items: center; */
 		display: grid;
 		grid-template-rows: 1fr calc(2 * var(--modal-header-height));
 		background-color: white;
 		padding-left: var(--modal-margin);
 		padding-right: var(--modal-margin);
-		/* overflow-y: scroll; */
-
 	}
 	.modal-body:last-of-type{
 		border-radius: 0 0 var(--modal-border-radius) var(--modal-border-radius);
@@ -105,28 +98,21 @@
 		max-height: calc(100vh - 2 * var(--modal-margin) - 3.5 * var(--modal-header-height));
 		overflow-y: auto;
 		padding-top: 40px;
-		/* background-color: aqua; */
-
 	}
-
 	.modal-buttons{
 		width: 100%;
 		height: 100%;
-		/* background-color: blanchedalmond; */
 		display: grid;
 		place-items: center;
 		padding: none;
-		
 	}
 	.modal-buttons :global(div) {
-		/* background-color: aquamarine; */
 		width: 100%;
 		display: flex;
 		flex-direction: row;
 		align-items: center;
 		padding: 10px 10px 0 10px;
 		gap: 10px;
-		
 	}
 	.modal-buttons :global(button){
 		font-size: 2rem;
@@ -135,6 +121,35 @@
 		background-color: var(--umass-red);
 		width: 100%;
 		border-radius: calc(var(--modal-border-radius) / 2);
-		
 	}	
+
+	@media screen and (max-width: 400px) {
+		header {
+			padding-left: 50px;
+		}
+		header > img {
+			height: 60px;
+			position: absolute;
+			/* margin: 10px 0 0 30px; */
+			left: 12px;
+			top: 12px;
+		}
+		.modal-container {
+			/* height: 100vh; */
+			position: absolute;
+			top: 0;
+			bottom: 0;
+		}
+		.modal-body {
+			height: 100%;
+			padding: 10px;
+		}
+		.modal-content {
+			height: calc(100vh - 2 * var(--modal-margin) - 3.5 * var(--modal-header-height));
+		}
+		.modal-buttons :global(button){
+			font-size: 1rem;
+			border-radius: 8px;
+		}
+	}
 </style>

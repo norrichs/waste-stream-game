@@ -69,21 +69,15 @@
 		margin-block-end: 0;
 	}
 	.score-report{
-		/* background-color: aliceblue; */
-		/* max-width: 800px; */
 		height: 100%;
 		display: flex;
 		flex-direction: column;
 		justify-content: flex-start;
 		overflow-y: scroll;
-
 	}
 	.report-grid{
-		/* display: grid;
-		grid-template-columns: 200px 1fr; */
 		display: flex;
 		flex-direction: column;
-
 	}
 	.row{
 		display: grid;
@@ -126,4 +120,19 @@
 		color: red;
 		background-color: lightpink;
 	}
+
+	@media screen and (max-width: 400px) {
+		.report-label {
+			width: 90px;
+		}
+		.row{
+			display: grid;
+			grid-template-columns: auto auto;
+		}
+		.row ul {
+			padding-inline-start: 0;
+		}
+	}
+
+
 </style>

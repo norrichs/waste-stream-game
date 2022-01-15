@@ -15,7 +15,7 @@
 	let wasteItems = [];
 	let settings = [0];
 	let lastElementOver;
-	let showReport = false;
+	let showReport = true;
 	let showWelcome = true;
 	let showCertificate = false;
 	let welcomeCopy = []
@@ -137,17 +137,10 @@
 			return obj;
 		});
 	};
-	const parseParagraph = (str) => {
-		console.log('PARSING', str)
-		const arr = str.split("\n")
-		console.log('paragraph ->',arr)
-		return arr
-	}
 	const handleSettings = (settings) => {
 		wasteItemsCount = parseInt(settings.wasteItemsCount);
 		adminMode = settings.adminMode;
-		console.log('handle settings welcome copy', settings.welcomeText)
-		welcomeCopy = parseParagraph(settings.welcomeText)
+		welcomeCopy = settings.welcomeText.split('\n')
 		itemsPerRowMobile = parseInt(settings.itemsPerRowMobile);
 		itemsPerRowDefault = parseInt(settings.itemsPerRowDefault);
 	};
@@ -298,6 +291,8 @@
 	//			Filter items by a type, then choose a random item from filtered list.
 	//			Use picked item to get an index for that item.  Splice it and add to 'selected' array
 	const sanitizeItems = (items) => {
+		console.log('within sanitizeItems all items waste types:', items.map(i=>i.waste_type))
+		console.log('items with undefined', items.filter(i=>i.waste_type===undefined))
 		return items
 			.filter((item) => item.waste_type !== undefined)
 			.map((item) => {
@@ -334,42 +329,23 @@
 				itemsFilteredByType[
 					Math.floor(Math.random() * itemsFilteredByType.length)
 				];
-			if (randItemOfType === undefined) {
-				console.log("type", type, itemsFilteredByType);
-			} else {
-				console.log("this random item of type...", randItemOfType);
-			}
 			const indexOfRandItemOfType = arr
 				.map((item) => item.name)
 				.indexOf(randItemOfType.name);
 			selected.push(arr.splice(indexOfRandItemOfType, 1)[0]);
-			console.log(
-				"select items -> source size",
-				arr.length,
-				"selected size",
-				selected.length
-			);
+
 		});
 
 		let remaining = size - selected.length;
 		while (remaining > 0) {
 			selected.push(arr.splice(Math.random() * arr.length, 1)[0]);
 			remaining -= 1;
-			console.log(
-				"remaining",
-				remaining,
-				"select items -> source size",
-				arr.length,
-				"selected size",
-				selected.length
-			);
 		}
 		return selected;
 	};
-	const addCSSToRoot = () => {
-		const root = document.querySelector(":root");
-		console.log("root", root);
-		root.style.setProperty("--test-var", "blue");
+	const addCSSToSelector = (selector, property, value) => {
+		const el = document.querySelector(selector);
+		el.style.setProperty(property, value);
 	};
 	const removeWelcome = () => {
 		showWelcome = false;
@@ -378,7 +354,9 @@
 		preLoadData = await fetchPreLoad();
 		console.log("initial preload", preLoadData);
 		handleReset();
-		addCSSToRoot();
+		document.querySelector(':root').style.setProperty('--items-per-row-default', itemsPerRowDefault)
+		document.querySelector(':root').style.setProperty('--items-per-row-mobile', itemsPerRowMobile)
+		// addCSSToSelector(':root', '--items-per-row', itemsPerRowDefault);	
 	});
 
 </script>
@@ -388,7 +366,6 @@
 		<img src="./images/MZYH_logo.png" alt="Make Zero Your Hero" />
 		<span>
 			<h1>UMass Waste Sort Game</h1>
-			<!-- <ScoreReport {wasteStreams} {hiddenScoreReport} {handleReset} /> -->
 			{#if showReport}
 				<Modal>
 					<h1 slot="title">Score Report</h1>
@@ -482,7 +459,7 @@
 		--umass-red: rgb(136, 28, 28);
 		--drag-box-height-mobile: 75px;
 		/* Waste Item Source Layout */
-		--items-per-row: 3;
+		--items-per-row: var(--items-per-row-default);
 		--item-gap: 5vw;
 		--drag-box-width: calc(
 			(90vw - var(--item-gap) * var(--items-per-row)) /
@@ -504,10 +481,22 @@
 		/* Waste Stream Target Layout */
 		--stream-section-gap: 20px;
 		--target-gap: 10px;
+		--target-group-width: min(100vw, 1000px);
 		--target-width: calc(
-			(100vw - var(--stream-section-gap) - 7 * var(--target-gap)) / 5
+			(var(--target-group-width) - var(--stream-section-gap) - 7 * var(--target-gap)) / 5
 		);
 	}
+	@media screen and (max-width: 400px) {
+		:root {
+			--items-per-row: var(--items-per-row-mobile);
+			/* Modal */
+			--modal-margin: 0px;
+			--modal-header-height: 50px;
+			--modal-footer-height: 50px;
+			--modal-border-radius: 0px;
+		}
+	}
+	
 	main {
 		position: relative;
 		margin: 0 auto;
@@ -528,10 +517,7 @@
 	}
 	header > img {
 		height: 100px;
-		/* position: absolute; */
 		margin: 10px 0 0 30px;
-		left: 30px;
-		top: 10px;
 	}
 	header > span {
 		padding-right: 30px;
@@ -551,6 +537,7 @@
 				var(--target-width) / 2 + var(--target-gap) * 2
 			);
 		grid-template-columns: 1fr;
+		place-items: start center;
 		background-image: url("../images/pond_chapel_cropped.png");
 		background-size: cover;
 		background-position: center bottom;
@@ -560,21 +547,15 @@
 
 	.drag-sources {
 		/* padding-top: 30px; */
-		margin: 60px auto calc(var(--target-width) / 2) auto;
-		max-width: 1000px;
+		/* margin: 60px auto calc(var(--target-width) / 2) auto; */
+		margin-top: 50px;
+		max-width: 1200px;
 		grid-row: 1 / 2;
 		grid-column: 1 / 2;
-
 		display: grid;
 		grid-template-columns: repeat(var(--items-per-row), 1fr);
-
-		/* display: flex;
-		flex-direction: row;
-		justify-content: center;
-		align-items: flex-start;
-		flex-wrap: wrap; */
-		/* padding: 60px 0px; */
 		gap: 30px;
+		background-color: rgba(25, 0, 255, 0.315);
 	}
 	section.drag-targets {
 		position: absolute;
@@ -584,7 +565,8 @@
 	}
 	/* Drag Target Layout */
 	.drag-targets {
-		width: 100%;
+		/* width: 100%; */
+		max-width: 1200px;
 		display: grid;
 		grid-template-areas: "cell0 cell1 cell2 . cell3 cell4";
 		grid-template-columns: repeat(3, var(--target-width)) var(
@@ -648,31 +630,25 @@
 	@keyframes flashRed {
 		from {
 			background-color: transparent;
-			/* scale: 1; */
 		}
 		10% {
 			background-color: red;
 			box-shadow: 0 0 50px 5px red;
-			/* scale: 1.5; */
 		}
 		to {
 			background-color: transparent;
-			/* scale: 1; */
 		}
 	}
 	@keyframes flashGreen {
 		from {
 			background-color: transparent;
-			/* scale: 1; */
 		}
 		10% {
 			background-color: green;
 			box-shadow: 0 0 50px 5px green;
-			/* scale: 1.5; */
 		}
 		to {
 			background-color: transparent;
-			/* scale: 1; */
 		}
 	}
 	@media screen and (max-width: 800px) {
@@ -697,9 +673,18 @@
 		:root {
 			--drag-box-height: 75px;
 		}
-		main > header {
-			background-color: var(--umass-red);
+		main header h1 {
+			font-size: 2em;
 		}
+		main > header > span {
+			background-color: indigo;
+			padding: 0;
+		}
+		main > header > img {
+			margin: 10px 0 0 10px;
+			height: 75px; 
+		}
+		
 		.drag-targets {
 			gap: 0;
 			padding: 0;
