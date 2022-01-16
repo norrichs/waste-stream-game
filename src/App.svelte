@@ -183,18 +183,20 @@
 		// append a touchmove element
 		ev.target.style.opacity = "0.3";
 		const [x, y] = [
-			ev.changedTouches[0].clientX - 25,
-			ev.changedTouches[0].clientY - 25,
+			ev.changedTouches[0].clientX ,
+			ev.changedTouches[0].clientY,
 		];
 		console.log("touchstart", ev, x, y);
 		const parentElement = document.querySelector("main");
 		const dragImg = document.createElement("img");
 		dragImg.setAttribute("src", ev.target.src);
 		dragImg.setAttribute("id", "drag-image-id");
-		dragImg.style.width = "50px";
+		dragImg.style.width = "100px";
 		dragImg.style.position = "absolute";
 		dragImg.style.top = y + "px";
-		dragImg.style.left = x + "px	";
+		dragImg.style.left = x + "px";
+		dragImg.style.border = "1px solid magenta";
+		dragImg.style.transform = "translate(-50%, -50%)"
 		dragImg.classList.add("drag-image");
 		parentElement.appendChild(dragImg);
 		console.log(document.querySelector("#drag-image-id").style.top);
@@ -216,12 +218,13 @@
 		// );
 		// get current cursor location
 		let [x, y] = [
-			ev.changedTouches[0].clientX - 25, //- dragImg.style.width / 2,
-			ev.changedTouches[0].clientY - 25, // - dragImg.style.height / 2
+			ev.changedTouches[0].clientX, //- dragImg.style.width / 2,
+			ev.changedTouches[0].clientY, // - dragImg.style.height / 2
 		];
 		// handle moving drag image
 		dragImg.style.top = y + "px";
 		dragImg.style.left = x + "px";
+		dragImg.style.transform = "translate(-50%, -50%)"
 
 		// briefly hide dragImg
 		dragImg.style.display = "none";
@@ -616,6 +619,7 @@
 
 	.drag-target.dropReady {
 		color: white;
+		background-color: rgba(255,255,255,0.3);
 		/* border: 5px solid; */
 		box-shadow: 0 0 50px 10px;
 		transition: 400ms;
@@ -630,7 +634,7 @@
 		animation-name: flashRed;
 	}
 	#drag-image-id {
-		width: 10px;
+		width: 500px;
 	}
 
 	@keyframes flashRed {
